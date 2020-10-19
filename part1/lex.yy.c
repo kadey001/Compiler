@@ -956,7 +956,7 @@ YY_RULE_SETUP
 case 29:
 YY_RULE_SETUP
 #line 45 "part1.lex"
-{printf("IDENTIFIER\n"); position+=yyleng;}
+{printf("IDENTIFIER %s\n", yytext); position+=yyleng;}
 	YY_BREAK
 case 30:
 YY_RULE_SETUP

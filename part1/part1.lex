@@ -42,7 +42,7 @@ comment "##".*
 "false" {printf("FALSE\n"); position+=yyleng;}
 "return" {printf("RETURN\n"); position+=yyleng;}
 
-{char}+ {printf("IDENTIFIER\n"); position+=yyleng;}
+{char}+ {printf("IDENTIFIER %s\n", yytext); position+=yyleng;}
 
 "+" {printf("PLUS\n"); position+=yyleng;}
 "-" {printf("MINUS\n"); position+=yyleng;}
