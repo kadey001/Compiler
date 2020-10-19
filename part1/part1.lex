@@ -3,6 +3,15 @@
     int position = 1;
 %}
 
+letter [a-zA-Z_]
+digit [0-9]
+dec {digit}*"."{digit}+
+sci ({digit}|{dec})+[eE][+-]?{digit}+
+char {letter}|{digit}
+space " "
+newline "\n"
+comment "##"
+
 %%
 "function" {printf("FUNCTION\n"); position+=yyleng;}
 "beginparams" {printf("BEGIN_PARAMS\n"); position+=yyleng;}
@@ -33,33 +42,42 @@
 "false" {printf("FALSE\n"); position+=yyleng;}
 "return" {printf("RETURN\n"); position+=yyleng;}
 
-"+" {printf("PLUS\n"); position+=yyleng}
-"-" {printf("MINUS\n"); position+=yyleng}
-"*" {printf("MULT\n"); position+=yyleng}
-"/" {printf("DIV\n"); position+=yyleng}
-"%" {printf("MOD\n"); position+=yyleng}
+{char}+ {printf("IDENTIFIER\n"); position+=yyleng;}
 
-"==" {printf("EQ\n"); position+=yyleng}
-"<>" {printf("NEQ\n"); position+=yyleng}
-"<" {printf("LT\n"); position+=yyleng}
-">" {printf("GT\n"); position+=yyleng}
-"<=" {printf("LTE\n"); position+=yyleng}
-">=" {printf("GTE\n"); position+=yyleng}
+"+" {printf("PLUS\n"); position+=yyleng;}
+"-" {printf("MINUS\n"); position+=yyleng;}
+"*" {printf("MULT\n"); position+=yyleng;}
+"/" {printf("DIV\n"); position+=yyleng;}
+"%" {printf("MOD\n"); position+=yyleng;}
 
-";" {printf("SEMICOLON\n"); position+=yyleng}
-":" {printf("COLON\n"); position+=yyleng}
-"," {printf("COMMA\n"); position+=yyleng}
-"(" {printf("L_PAREN\n"); position+=yyleng}
-")" {printf("R_PAREN\n"); position+=yyleng}
-"[" {printf("L_SQUARE_BRACKET\n"); position+=yyleng}
-"]" {printf("R_SQUARE_BRACKET\n"); position+=yyleng}
+"==" {printf("EQ\n"); position+=yyleng;}
+"<>" {printf("NEQ\n"); position+=yyleng;}
+"<" {printf("LT\n"); position+=yyleng;}
+">" {printf("GT\n"); position+=yyleng;}
+"<=" {printf("LTE\n"); position+=yyleng;}
+">=" {printf("GTE\n"); position+=yyleng;}
 
-"\n" {line++; position = 1;}
+";" {printf("SEMICOLON\n"); position+=yyleng;}
+":" {printf("COLON\n"); position+=yyleng;}
+"," {printf("COMMA\n"); position+=yyleng;}
+"(" {printf("L_PAREN\n"); position+=yyleng;}
+")" {printf("R_PAREN\n"); position+=yyleng;}
+"[" {printf("L_SQUARE_BRACKET\n"); position+=yyleng;}
+"]" {printf("R_SQUARE_BRACKET\n"); position+=yyleng;}
+
+{space}+ {position+=yyleng;}
+{newline} {line++; position = 1;}
+{comment}[^{newline}]*
 
 . {printf("unrecognised char on line: %d at position: %d\n", line, position); exit(0);}
 
 %%
 
 int main(int argc, char *argv[]) {
+    if (argc > 1) {
+        yyin = fopen(argv[1], "rb");
+    } else {
+        yyin = stdin;
+    }
     yylex();
 }
