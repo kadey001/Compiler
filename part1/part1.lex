@@ -69,7 +69,7 @@ comment "##"
 {newline} {line++; position = 1;}
 {comment}[^{newline}]*
 
-. {printf("unrecognised char on line: %d at position: %d\n", line, position); exit(0);}
+. {printf("unrecognised char %c on line: %d at position: %d\n",yytext, line, position); exit(0);}
 
 %%
 
