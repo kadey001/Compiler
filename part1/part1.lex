@@ -10,7 +10,7 @@ sci ({digit}|{dec})+[eE][+-]?{digit}+
 char {letter}|{digit}
 space " "
 newline "\n"
-comment "##"
+comment "##".*
 
 %%
 "function" {printf("FUNCTION\n"); position+=yyleng;}
@@ -64,12 +64,13 @@ comment "##"
 ")" {printf("R_PAREN\n"); position+=yyleng;}
 "[" {printf("L_SQUARE_BRACKET\n"); position+=yyleng;}
 "]" {printf("R_SQUARE_BRACKET\n"); position+=yyleng;}
+":=" {printf("ASSIGN\n"); position+=yyleng;}
 
 {space}+ {position+=yyleng;}
 {newline} {line++; position = 1;}
-{comment}[^{newline}]*
+{comment} {position+=yyleng;}
 
-. {printf("unrecognised char %c on line: %d at position: %d\n",yytext, line, position); exit(0);}
+. {printf("Error at line: %d, column: %d: unrecognized symbol: \"%c\"\n", line, position, *yytext); exit(0);}
 
 %%
 

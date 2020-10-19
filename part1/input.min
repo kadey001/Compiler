@@ -10,11 +10,11 @@ beginlocals
 
 endlocals
 
-beginbody	## main program
+beginbody ## main program
 
   read i, j;
 
-  k := 0;
+  k = 0;
   n := 20;
   
   do 
