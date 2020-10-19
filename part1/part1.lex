@@ -11,6 +11,9 @@ char {letter}|{digit}
 space " "
 newline "\n"
 comment "##".*
+UNDERSCORE "_"
+ending_iden_char = [a-zA-Z]|{digit}
+
 
 %%
 "function" {printf("FUNCTION\n"); position+=yyleng;}
@@ -42,7 +45,6 @@ comment "##".*
 "false" {printf("FALSE\n"); position+=yyleng;}
 "return" {printf("RETURN\n"); position+=yyleng;}
 
-{char}+ {printf("IDENTIFIER\n"); position+=yyleng;}
 
 "+" {printf("PLUS\n"); position+=yyleng;}
 "-" {printf("MINUS\n"); position+=yyleng;}
@@ -56,6 +58,8 @@ comment "##".*
 ">" {printf("GT\n"); position+=yyleng;}
 "<=" {printf("LTE\n"); position+=yyleng;}
 ">=" {printf("GTE\n"); position+=yyleng;}
+":=" {printf("ASSIGN\n"); position+=yyleng;}
+
 
 ";" {printf("SEMICOLON\n"); position+=yyleng;}
 ":" {printf("COLON\n"); position+=yyleng;}
@@ -64,13 +68,20 @@ comment "##".*
 ")" {printf("R_PAREN\n"); position+=yyleng;}
 "[" {printf("L_SQUARE_BRACKET\n"); position+=yyleng;}
 "]" {printf("R_SQUARE_BRACKET\n"); position+=yyleng;}
-":=" {printf("ASSIGN\n"); position+=yyleng;}
 
-{space}+ {position+=yyleng;}
-{newline} {line++; position = 1;}
+
+{letter}{char}*  {printf("IDENT %s\n", yytext); position+=yyleng;}
+{digit}+  {printf("NUMBER %s\n", yytext); position += yyleng;}
+
+{space}+ { position+=yyleng;}
+{newline} { line++; position = 1;}
 {comment} {position+=yyleng;}
 
+{digit}+{letter}* {printf("Error at line %d, column %d: identifier \"%s\" must begin with a letter\n", line, position, yytext);}
+{letter}{char}*{UNDERSCORE} {printf("Error at line %d, column %d: identifier \"%s\" cannot end with an underscore\n", line, position, yytext); } 
 . {printf("Error at line: %d, column: %d: unrecognized symbol: \"%c\"\n", line, position, *yytext); exit(0);}
+
+
 
 %%
 
