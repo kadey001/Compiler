@@ -70,7 +70,9 @@ ending_iden_char = [a-zA-Z]|{digit}
 "]" {printf("R_SQUARE_BRACKET\n"); position+=yyleng;}
 
 
-{letter}{char}*  {printf("IDENT %s\n", yytext); position+=yyleng;}
+
+{letter}{char}*{UNDERSCORE} {printf("Error at line %d, column %d: identifier \"%s\" cannot end with an underscore\n", line, position, yytext); }
+{letter}{char}*   {printf("IDENT %s\n", yytext); position+=yyleng;}
 {digit}+  {printf("NUMBER %s\n", yytext); position += yyleng;}
 
 {space}+ { position+=yyleng;}
@@ -78,7 +80,6 @@ ending_iden_char = [a-zA-Z]|{digit}
 {comment} {position+=yyleng;}
 
 {digit}+{letter}* {printf("Error at line %d, column %d: identifier \"%s\" must begin with a letter\n", line, position, yytext);}
-{letter}{char}*{UNDERSCORE} {printf("Error at line %d, column %d: identifier \"%s\" cannot end with an underscore\n", line, position, yytext); } 
 . {printf("Error at line: %d, column: %d: unrecognized symbol: \"%c\"\n", line, position, *yytext); exit(0);}
 
 
