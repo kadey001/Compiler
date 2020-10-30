@@ -8,7 +8,7 @@ digit [0-9]
 dec {digit}*"."{digit}+
 sci ({digit}|{dec})+[eE][+-]?{digit}+
 char {letter}|{digit}
-space " "
+space " "|"\t"
 newline "\n"
 comment "##".*
 UNDERSCORE "_"
