@@ -3,19 +3,19 @@
     int position = 1;
 %}
 
-letter [a-zA-Z_]
+letter [a-zA-Z]
 digit [0-9]
 dec {digit}*"."{digit}+
 sci ({digit}|{dec})+[eE][+-]?{digit}+
-char {letter}|{digit}
+char {letter}|{digit}|{underscore}
 space " "|"\t"
 newline "\n"
 comment "##".*
-UNDERSCORE "_"
-ending_iden_char = [a-zA-Z]|{digit}
-
+underscore "_"
+ending_iden_char = {letter}|{digit}
 
 %%
+
 "function" {printf("FUNCTION\n"); position+=yyleng;}
 "beginparams" {printf("BEGIN_PARAMS\n"); position+=yyleng;}
 "endparams" {printf("END_PARAMS\n");}
@@ -45,9 +45,8 @@ ending_iden_char = [a-zA-Z]|{digit}
 "false" {printf("FALSE\n"); position+=yyleng;}
 "return" {printf("RETURN\n"); position+=yyleng;}
 
-
-"+" {printf("PLUS\n"); position+=yyleng;}
-"-" {printf("MINUS\n"); position+=yyleng;}
+"+" {printf("ADD\n"); position+=yyleng;}
+"-" {printf("SUB\n"); position+=yyleng;}
 "*" {printf("MULT\n"); position+=yyleng;}
 "/" {printf("DIV\n"); position+=yyleng;}
 "%" {printf("MOD\n"); position+=yyleng;}
@@ -60,7 +59,6 @@ ending_iden_char = [a-zA-Z]|{digit}
 ">=" {printf("GTE\n"); position+=yyleng;}
 ":=" {printf("ASSIGN\n"); position+=yyleng;}
 
-
 ";" {printf("SEMICOLON\n"); position+=yyleng;}
 ":" {printf("COLON\n"); position+=yyleng;}
 "," {printf("COMMA\n"); position+=yyleng;}
@@ -69,9 +67,7 @@ ending_iden_char = [a-zA-Z]|{digit}
 "[" {printf("L_SQUARE_BRACKET\n"); position+=yyleng;}
 "]" {printf("R_SQUARE_BRACKET\n"); position+=yyleng;}
 
-
-
-{letter}{char}*{UNDERSCORE} {printf("Error at line %d, column %d: identifier \"%s\" cannot end with an underscore\n", line, position, yytext); }
+{letter}{char}*{underscore} {printf("Error at line %d, column %d: identifier \"%s\" cannot end with an underscore\n", line, position, yytext); }
 {letter}{char}*   {printf("IDENT %s\n", yytext); position+=yyleng;}
 {digit}+  {printf("NUMBER %s\n", yytext); position += yyleng;}
 
@@ -79,10 +75,8 @@ ending_iden_char = [a-zA-Z]|{digit}
 {newline} { line++; position = 1;}
 {comment} {position+=yyleng;}
 
-{digit}+{letter}* {printf("Error at line %d, column %d: identifier \"%s\" must begin with a letter\n", line, position, yytext);}
+({underscore}|{digit})+{letter}* {printf("Error at line %d, column %d: identifier \"%s\" must begin with a letter\n", line, position, yytext);}
 . {printf("Error at line: %d, column: %d: unrecognized symbol: \"%c\"\n", line, position, *yytext); exit(0);}
-
-
 
 %%
 
