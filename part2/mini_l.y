@@ -1,7 +1,11 @@
 %{
   // C Declarations
+  #include <stdio.h>
   #include <stdlib.h>
-  void yyerror(const char* s);
+  void yyerror(const char *msg);
+  extern int currLine;
+  extern int currPos;
+  FILE * yyin;
 %}
 // Bison Declarations
 
@@ -11,7 +15,7 @@
  }
 
 %error-verbose
-%start Program
+%start program
 
 %token FUNCTION
 %token BEGIN_PARAMS
@@ -67,9 +71,36 @@
 %token R_SQUARE_BRACKET
 %left ASSIGN
 
-%%
-// Grammar Rules
+%% /* Grammar Rules */
 
+program: /* epsilon */ {printf("program -> epsilon\n");}
+		| program function {printf("program -> program function\n");}
+		;
+
+function: FUNCTION IDENT SEMICOLON {printf("function -> FUNCTION IDENT SEMICOLON\n");}
+    | 
+		;
+
+comparison: EQ {printf("comparison -> EQ\n");}
+    | NEQ {printf("comparison -> NEQ\n");}
+    | LT {printf("comparison -> LT\n");}
+    | GT {printf("comparison -> GT\n");}
+    | LTE {printf("comparison -> LTE\n");}
+    | GTE {printf("comparison -> GTE\n");}
+    ;
+
+multiplicative-expr: term {printf("multiplicative-expr -> term\n");}
+    | term MULT term {printf("multiplicative-expr -> term MULT term\n");}
+    | term DIV term {printf("multiplicative-expr -> term DIV term\n");}
+    | term MOD term term {printf("multiplicative-expr -> term MOD term\n");}
+    ;
+
+var: IDENT {printf("var -> IDENT\n");}
+    | IDENT L_SQUARE_BRACKET expression R_SQUARE_BRACKET {printf("var -> IDENT [ expression ]\n");}
+    | IDENT L_SQUARE_BRACKET expression R_SQUARE_BRACKET L_SQUARE_BRACKET expression R_SQUARE_BRACKET {printf("var -> IDENT [ expression ] [ expression ]\n");}
+    ;
+
+ident: IDENT {prtinf("IDENT: \s", $1)}
 
 %%
 // Additional C Code
