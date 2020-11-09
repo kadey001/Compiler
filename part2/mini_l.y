@@ -15,7 +15,7 @@
  }
 
 %error-verbose
-%start program
+%start Program
 
 %token FUNCTION
 %token BEGIN_PARAMS
@@ -73,15 +73,11 @@
 
 %% /* Grammar Rules */
 
-program: /* epsilon */ {printf("program -> epsilon\n");}
-		| program function {printf("program -> program function\n");}
-		;
-
-function: FUNCTION IDENT SEMICOLON {printf("function -> FUNCTION IDENT SEMICOLON\n");}
+Function: FUNCTION IDENT SEMICOLON {printf("function -> FUNCTION IDENT SEMICOLON\n");}
     | 
 		;
 
-comparison: EQ {printf("comparison -> EQ\n");}
+Comparison: EQ {printf("comparison -> EQ\n");}
     | NEQ {printf("comparison -> NEQ\n");}
     | LT {printf("comparison -> LT\n");}
     | GT {printf("comparison -> GT\n");}
@@ -89,18 +85,48 @@ comparison: EQ {printf("comparison -> EQ\n");}
     | GTE {printf("comparison -> GTE\n");}
     ;
 
-multiplicative-expr: term {printf("multiplicative-expr -> term\n");}
+MultiplicativeExpr: term {printf("multiplicative-expr -> term\n");}
     | term MULT term {printf("multiplicative-expr -> term MULT term\n");}
     | term DIV term {printf("multiplicative-expr -> term DIV term\n");}
     | term MOD term term {printf("multiplicative-expr -> term MOD term\n");}
     ;
 
-var: IDENT {printf("var -> IDENT\n");}
-    | IDENT L_SQUARE_BRACKET expression R_SQUARE_BRACKET {printf("var -> IDENT [ expression ]\n");}
-    | IDENT L_SQUARE_BRACKET expression R_SQUARE_BRACKET L_SQUARE_BRACKET expression R_SQUARE_BRACKET {printf("var -> IDENT [ expression ] [ expression ]\n");}
-    ;
+Program: /* epsilon */ {printf("program -> epsilon\n");}
+	| Program Function {printf("program -> program function\n");}
+	;
 
-ident: IDENT {prtinf("IDENT: \s", $1)}
+Declaration: IDENT COMMA Declaration {printf("Declaration -> IDENT COMMA Declaration\n");}
+	| IDENT COLON INTEGER {printf("Declaration -> IDENT COLON INTEGER\n");}
+	| IDENT COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER {printf("Declaration -> IDENT COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER\n");}
+	| IDENT COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER {printf("Declaration -> IDENT COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER\n");}
+	;
+
+BoolExpr: RelationAndExpr {printf("BoolExpr -> RelationAndExpr\n");} 
+	| RelationAndExpr OR RelationAndExpr {printf("BoolExpr -> RelationAndExpr OR RelationAndExpr\n");}
+	;
+
+RelationExpr: Expression Comp Expression {printf("RelationExpr -> Expression Comp Expression\n");}
+	| TRUE {printf("RelationExpr -> TRUE\n");}
+	| FALSE {printf("RelationExpr -> FALSE\n");}
+	| L_PAREN BoolExpr R_PAREN {printf("RelationExpr -> L_PAREN BoolExpr R_PAREN\n");}
+	| NOT Expression Comp Expression {printf("RelationExpr -> NOT Expression Comp Expression\n");}
+	| NOT TRUE {printf("RelationExpr -> NOT TRUE\n");}
+        | NOT FALSE {printf("RelationExpr -> NOT FALSE\n");}
+        | NOT L_PAREN BoolExpr R_PAREN {printf("RelationExpr -> NOT L_PAREN BoolExpr R_PAREN\n");}
+        ;
+
+Expression: MultiplicativeExpr {printf("Expression -> MultiplicativeExpr\n");}
+	| MultiplicativeExpr PLUS MultiplicativeExpr {printf("MultiplicativeExpr PLUS MultiplicativeExpr\n");}
+	| MultiplicativeExpr SUB MultiplicativeExpr {printf("MultiplicativeExpr SUB MultiplicativeExpr\n");}
+	;
+
+Var: IDENT {printf("Var -> IDENT\n");}
+	| IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
+	| IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
+	;
+ 
+
+
 
 %%
 // Additional C Code
