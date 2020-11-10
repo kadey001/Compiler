@@ -73,7 +73,7 @@
 
 %% /* Grammar Rules */
 
-Functions: %empty {printf("Functions -> epsilon\n");};
+Functions: %empty {printf("Functions -> epsilon\n");}
     | Function Functions {printf("Functions -> Function Functions\n");}
     ;
 Function: FUNCTION Ident SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY {printf("Function -> FUNCTION Ident SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY\n");};
@@ -93,22 +93,31 @@ Statement: Var ASSIGN Expression {printf("\n");}
     | RETURN {printf("Statement -> RETURN\n");}
     ;
 
-Comparison: EQ {printf("comparison -> EQ\n");}
-    | NEQ {printf("comparison -> NEQ\n");}
-    | LT {printf("comparison -> LT\n");}
-    | GT {printf("comparison -> GT\n");}
-    | LTE {printf("comparison -> LTE\n");}
-    | GTE {printf("comparison -> GTE\n");}
+Comparison: EQ {printf("Comparison -> EQ\n");}
+    | NEQ {printf("Comparison -> NEQ\n");}
+    | LT {printf("Comparison -> LT\n");}
+    | GT {printf("Comparison -> GT\n");}
+    | LTE {printf("Comparison -> LTE\n");}
+    | GTE {printf("Comparison -> GTE\n");}
     ;
 
-MultiplicativeExpr: term {printf("multiplicative-expr -> term\n");}
-    | term MULT term {printf("multiplicative-expr -> term MULT term\n");}
-    | term DIV term {printf("multiplicative-expr -> term DIV term\n");}
-    | term MOD term term {printf("multiplicative-expr -> term MOD term\n");}
+MultiplicativeExpr: Term {printf("multiplicative-expr -> Term\n");}
+    | Term MULT Term {printf("multiplicative-expr -> Term MULT Term\n");}
+    | Term DIV Term {printf("multiplicative-expr -> Term DIV Term\n");}
+    | Term MOD Term {printf("multiplicative-expr -> Term MOD Term\n");}
     ;
 
-Program: /* epsilon */ {printf("program -> epsilon\n");}
-	  | Program Function {printf("program -> program function\n");}
+Term: Var {printf("Term -> Var\n");}
+    | NUMBER {printf("Term -> NUMBER\n");}
+    | L_PAREN Expression R_PAREN {printf("Term -> L_PAREN Expression R_PAREN\n");}
+        | SUB Var {printf("Term -> SUB Var\n");}
+        | SUB NUMBER {printf("Term -> SUB NUMBER\n");}
+        | SUB L_PAREN Expression R_PAREN {printf("Term -> SUB L_PAREN Expression R_PAREN\n");}
+    | IDENT L_PAREN Expressions R_PAREN {printf("Term -> IDENT L_PAREN Expressions R_PAREN\n");}
+    ;
+
+Program: /* epsilon */ {printf("Program -> epsilon\n");}
+	  | Program Function {printf("Program -> Program Function\n");}
 	  ;
 
 Declaration: IDENT COMMA Declaration {printf("Declaration -> IDENT COMMA Declaration\n");}
@@ -135,6 +144,9 @@ RelationExpr: Expression Comp Expression {printf("RelationExpr -> Expression Com
         | NOT L_PAREN BoolExpr R_PAREN {printf("RelationExpr -> NOT L_PAREN BoolExpr R_PAREN\n");}
         ;
 
+Expressions: %empty {printf("Expressions -> epsilon\n");}
+    | Expression COMMA Expressions {printf("Expressions -> Expression COMMA Expressions\n");}
+    ;
 Expression: MultiplicativeExpr {printf("Expression -> MultiplicativeExpr\n");}
 	  | MultiplicativeExpr PLUS MultiplicativeExpr {printf("MultiplicativeExpr PLUS MultiplicativeExpr\n");}
 	  | MultiplicativeExpr SUB MultiplicativeExpr {printf("MultiplicativeExpr SUB MultiplicativeExpr\n");}
@@ -144,9 +156,9 @@ Vars: %empty {printf("Vars -> epsilon\n");}
     | Var COMMA Vars {printf("Vars -> Var COMMA Vars\n");}
     ;
 Var: IDENT {printf("Var -> IDENT\n");}
-	| IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
-	| IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
-	;
+	  | IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
+	  | IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
+	  ;
 
 
 %%
