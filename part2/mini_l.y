@@ -65,17 +65,15 @@
 %token SEMICOLON
 %token COLON
 %token COMMA
-%token L_PAREN
-%token R_PAREN
-%token L_SQUARE_BRACKET
-%token R_SQUARE_BRACKET
-%left ASSIGN
+%left L_PAREN
+%left R_PAREN
+%left L_SQUARE_BRACKET
+%left R_SQUARE_BRACKET
+%right ASSIGN
 
 %% /* Grammar Rules */
 
-Program: /* epsilon */ {printf("Program -> epsilon\n");}
-    | Program Functions {printf("Program -> Program Function\n");}
-    ;
+Program: Functions {printf("Program -> Program Function\n");};
 
 Functions: /* epsilon */ {printf("Functions -> epsilon\n");}
     | Function Functions {printf("Functions -> Function Functions\n");}
@@ -175,6 +173,7 @@ int main (int argc, char* argv[]) {
 	yyparse();
 	return 0;
 }
+
 void yyerror(const char* msg) {
     printf("* Line %d, position %d: %s\n", currLine, currPos, msg);
 }
