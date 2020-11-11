@@ -1,7 +1,7 @@
 %{
-    #include "y.tab.h"
-    int currLine = 1; 
-    int currPos = 1;
+   #include "y.tab.h"
+   int currLine = 1; 
+   int currPos = 1;
 %}
 
 letter [a-zA-Z]
@@ -68,9 +68,9 @@ ending_iden_char = {letter}|{digit}
 "[" {currPos+=yyleng; return L_SQUARE_BRACKET;}
 "]" {currPos+=yyleng; return R_SQUARE_BRACKET;}
 
-{letter}{char}*{underscore} {printf("Error at line %d, column %d: identifier \"%s\" cannot end with an underscore\n", currLine, currPos, yytext); }
-{letter}{char}*   {printf("IDENT %s\n", yytext); currPos+=yyleng;}
-{digit}+  {printf("NUMBER %s\n", yytext); currPos += yyleng;}
+{letter}{char}*{underscore} {printf("Error at line %d, column %d: identifier \"%s\" cannot end with an underscore\n", currLine, currPos, yytext); exit(0);}
+{letter}{char}*   {currPos+=yyleng; yylval.sval = yytext; return IDENT;}
+{digit}+  {currPos += yyleng; yylval.ival = atoi(yytext); return NUMBER;}
 
 {space}+ { currPos+=yyleng;}
 {newline} { currLine++; currPos = 1;}
@@ -80,4 +80,3 @@ ending_iden_char = {letter}|{digit}
 . {printf("Error at line: %d, column: %d: unrecognized symbol: \"%c\"\n", currLine, currPos, *yytext); exit(0);}
 
 %%
-
