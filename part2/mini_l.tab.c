@@ -592,7 +592,7 @@ static const yytype_uint8 yydefact[] =
 static const yytype_int16 yypgoto[] =
 {
      -60,   -60,   150,   -60,   140,    -1,   -59,   -60,    82,   -23,
-     -60,   -10,   -60,   -32,   -60,    76,    34,    20,   -34,    -5
+     -60,   -10,   -60,   -32,    76,   -60,    34,    20,   -34,    -5
 };
 
   /* YYDEFGOTO[NTERM-NUM].  */
@@ -665,7 +665,7 @@ static const yytype_uint8 yystos[] =
       25,    36,    37,    38,    39,    40,    41,    60,    20,    58,
       51,    46,    69,    69,    58,    69,    12,    65,    60,    69,
       48,    48,    68,    69,    69,    69,    61,    61,    61,    58,
-      65,    67,    69,    58,    21,    43,    70,    50,    10,    48,
+      65,    66,    69,    58,    21,    43,    70,    50,    10,    48,
       69,    48,    48,    46,    15,    16,    21,    17,    44,    49,
       68,    58,    65,    65,    69,    15,    44,    50,    71,    51,
       69,    20,    58,    21
@@ -1634,7 +1634,7 @@ yyreduce:
 
   case 46:
 #line 140 "mini_l.y" /* yacc.c:1646  */
-    {printf("RelationAndExpr -> RelationExpr AND RelationExpr\n");}
+    {printf("RelationAndExpr -> RelationExpr AND RelationAndExpr\n");}
 #line 1639 "mini_l.tab.c" /* yacc.c:1646  */
     break;
 

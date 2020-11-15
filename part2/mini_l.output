@@ -59,7 +59,7 @@ Grammar
    43         | RelationAndExpr OR BoolExpr
 
    44 RelationAndExpr: RelationExpr
-   45                | RelationExpr AND RelationExpr
+   45                | RelationExpr AND RelationAndExpr
 
    46 RelationExpr: Expression Comparison Expression
    47             | TRUE
@@ -172,7 +172,7 @@ Declaration (64)
 BoolExpr (65)
     on left: 42 43, on right: 11 12 13 14 15 43 49 53
 RelationAndExpr (66)
-    on left: 44 45, on right: 42 43
+    on left: 44 45, on right: 42 43 45
 RelationExpr (67)
     on left: 46 47 48 49 50 51 52 53, on right: 44 45
 Expressions (68)
@@ -767,7 +767,7 @@ State 56
 State 57
 
    44 RelationAndExpr: RelationExpr .
-   45                | RelationExpr . AND RelationExpr
+   45                | RelationExpr . AND RelationAndExpr
 
     AND  shift, and go to state 90
 
@@ -1194,7 +1194,7 @@ State 89
 
 State 90
 
-   45 RelationAndExpr: RelationExpr AND . RelationExpr
+   45 RelationAndExpr: RelationExpr AND . RelationAndExpr
 
     NOT      shift, and go to state 46
     TRUE     shift, and go to state 47
@@ -1207,7 +1207,8 @@ State 90
     Ident               go to state 52
     MultiplicativeExpr  go to state 53
     Term                go to state 54
-    RelationExpr        go to state 121
+    RelationAndExpr     go to state 121
+    RelationExpr        go to state 57
     Expression          go to state 58
     Var                 go to state 59
 
@@ -1467,7 +1468,7 @@ State 120
 
 State 121
 
-   45 RelationAndExpr: RelationExpr AND RelationExpr .
+   45 RelationAndExpr: RelationExpr AND RelationAndExpr .
 
     $default  reduce using rule 45 (RelationAndExpr)
 

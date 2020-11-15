@@ -137,7 +137,7 @@ BoolExpr: RelationAndExpr {printf("BoolExpr -> RelationAndExpr\n");}
     ;
 
 RelationAndExpr: RelationExpr {printf("RelationAndExpr -> RelationExpr\n");}
-    | RelationExpr AND RelationExpr {printf("RelationAndExpr -> RelationExpr AND RelationExpr\n");}
+    | RelationExpr AND RelationAndExpr {printf("RelationAndExpr -> RelationExpr AND RelationAndExpr\n");}
     ;
 
 RelationExpr: Expression Comparison Expression {printf("RelationExpr -> Expression Comp Expression\n");}
