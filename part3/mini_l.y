@@ -7,6 +7,13 @@
   extern int currPos;
   FILE * yyin;
   int yylex();
+  
+  struct dec_type{
+	string code;
+	list<string> ids;
+  };
+  /* end the structures for non-terminal types */
+}
 %}
 // Bison Declarations
 
@@ -72,19 +79,44 @@
 %left R_SQUARE_BRACKET
 %right ASSIGN
 
+%type <string> program function identifier statements
+%type <dec_type> declarations declaration
+%type <list<string>> identifier_loop
+
+
 %% /* Grammar Rules */
 
-Program: Functions {printf("Program -> Functions\n");};
+Program: Functions { cout << $1 << endl; };
 
-Functions: /* epsilon */ {printf("Functions -> epsilon\n");}
-    | Function Functions {printf("Functions -> Function Functions\n");}
-    ;
-Function: FUNCTION Ident SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY {printf("Function -> FUNCTION IDENT SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY\n");};
 
-Idents: Ident {printf("Idents -> Ident\n");}
-    | Ident COMMA Idents {printf("Idents -> Ident COMMA Idents\n");}
+
+Functions: 
+	/* epsilon */ { $$ = ""; }
+    	| Function Functions { $$ = $1 + "\n" + $2;}
     ;
-Ident: IDENT {printf("Ident -> IDENT %s\n", $1);};
+    
+    
+Function: FUNCTION Ident SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY 
+	{
+	   $$ = "func " + $2 + "\n";
+	   $$ += $5.code;
+	   int i = 0;
+	   for (auto it = $5.ids.begin(); it != $5.ids.end(); it++) {
+	   	$$ += *it + " $" + to_string(i) + "\n";
+		i++;
+	   }
+	   $$ += $8.code;
+	   $$ += $11;
+	   $$ += "endfunc";
+	
+	};
+
+
+
+Idents: Ident { $$.push_back($1); }
+    | Ident COMMA Idents { $$ = $3;  $$.push_front($1);}
+    ;
+Ident: IDENT { $$ = $1;};
 
 Statements: /* epsilon */ {printf("Statements -> epsilon\n");}
     | Statement SEMICOLON Statements {printf("Statements-> Statement SEMICOLON Statements\n");}
@@ -125,11 +157,30 @@ Term: Var {printf("Term -> Var\n");}
     | Ident L_PAREN Expressions R_PAREN {printf("Term -> IDENT L_PAREN Expressions R_PAREN\n");}
     ;
 
-Declarations: /* epsilon */ {printf("Declarations -> epsilon\n");}
-    | Declaration SEMICOLON Declarations {printf("Declarations -> Declaration SEMICOLON Declarations\n");}
+Declarations: /* epsilon */ { $$.code = ""; $$.ids = list<string>(); }
+    | Declaration SEMICOLON Declarations 
+    	{
+    	    $$.code = $1.code + "\n" + $3.code;
+	    $$.ids = $1.ids;
+	    for (auto it = $3.ids.begin(); it != $3.ids.end(); it++) {
+	    	$$.ids.push_back(*it);
+	    }
+    	}
     ;
-Declaration: Idents COLON INTEGER {printf("Declaration -> IDENT COLON INTEGER\n");}
-    | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER {printf("Declaration -> IDENT COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER\n");}
+Declaration: Idents COLON INTEGER 
+	{
+		for (auto it = $1.begin(); it != $1.end(); it++) {
+			$$.code += ". " + *it + "\n";
+			$$.ids.push_back(*it);
+		}
+	}
+    | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
+    {
+    		for (auto it = $1.begin(); it != $1.end(); it++) {
+			$$.code += ".[] " + *it + ", " + to_string($5) + "\n";
+			$$.ids.push_back(*it);
+		}
+    }
     | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER {printf("Declaration -> IDENT COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER\n");}
     ;
 
@@ -143,6 +194,8 @@ RelationAndExpr: RelationExpr {printf("RelationAndExpr -> RelationExpr\n");}
 
 /* Steven */
 RelationExpr: Expression Comparison Expression {printf("RelationExpr -> Expression Comp Expression\n");}
+
+
     | TRUE {printf("RelationExpr -> TRUE\n");}
     | FALSE {printf("RelationExpr -> FALSE\n");}
     | L_PAREN BoolExpr R_PAREN {printf("RelationExpr -> L_PAREN BoolExpr R_PAREN\n");}
