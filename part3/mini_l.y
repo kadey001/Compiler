@@ -5,15 +5,8 @@
   void yyerror(const char *msg);
   extern int currLine;
   extern int currPos;
-  FILE * yyin;
+  //FILE * yyin;
   int yylex();
-  
-  struct dec_type{
-	string code;
-	list<string> ids;
-  };
-  /* end the structures for non-terminal types */
-}
 %}
 // Bison Declarations
 
@@ -79,44 +72,19 @@
 %left R_SQUARE_BRACKET
 %right ASSIGN
 
-%type <string> Program Function Functions Ident Statements
-%type <dec_type> Declarations Declaration
-%type <list<string>> Idents
-
-
 %% /* Grammar Rules */
 
-Program: Functions { cout << $1 << endl; };
+Program: Functions {printf("Program -> Functions\n");};
 
-
-
-Functions: 
-	/* epsilon */ { $$ = ""; }
-    	| Function Functions { $$ = $1 + "\n" + $2;}
+Functions: /* epsilon */ {printf("Functions -> epsilon\n");}
+    | Function Functions {printf("Functions -> Function Functions\n");}
     ;
-    
-    
-Function: FUNCTION Ident SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY 
-	{
-	   $$ = "func " + $2 + "\n";
-	   $$ += $5.code;
-	   int i = 0;
-	   for (auto it = $5.ids.begin(); it != $5.ids.end(); it++) {
-	   	$$ += *it + " $" + to_string(i) + "\n";
-		i++;
-	   }
-	   $$ += $8.code;
-	   $$ += $11;
-	   $$ += "endfunc";
-	
-	};
+Function: FUNCTION Ident SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY {printf("Function -> FUNCTION IDENT SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY\n");};
 
-
-
-Idents: Ident { $$.push_back($1); }
-    | Ident COMMA Idents { $$ = $3;  $$.push_front($1);}
+Idents: Ident {printf("Idents -> Ident\n");}
+    | Ident COMMA Idents {printf("Idents -> Ident COMMA Idents\n");}
     ;
-Ident: IDENT { $$ = $1;};
+Ident: IDENT {printf("Ident -> IDENT %s\n", $1);};
 
 Statements: /* epsilon */ {printf("Statements -> epsilon\n");}
     | Statement SEMICOLON Statements {printf("Statements-> Statement SEMICOLON Statements\n");}
@@ -133,13 +101,12 @@ Statement: Var ASSIGN Expression {printf("\n");}
     | RETURN Expression {printf("Statement -> RETURN\n");}
     ;
 
-/* Steven */
-Comparison: EQ {printf( $$ = "=="; }
-    | NEQ { $$ = "!="; }
-    | LT { $$ = "<"; }
-    | GT { $$ = ">"; }
-    | LTE { $$ = "<="; }
-    | GTE { $$ = ">="; }
+Comparison: EQ {printf("Comparison -> EQ\n");}
+    | NEQ {printf("Comparison -> NEQ\n");}
+    | LT {printf("Comparison -> LT\n");}
+    | GT {printf("Comparison -> GT\n");}
+    | LTE {printf("Comparison -> LTE\n");}
+    | GTE {printf("Comparison -> GTE\n");}
     ;
 
 MultiplicativeExpr: Term {printf("multiplicative-expr -> Term\n");}
@@ -157,30 +124,11 @@ Term: Var {printf("Term -> Var\n");}
     | Ident L_PAREN Expressions R_PAREN {printf("Term -> IDENT L_PAREN Expressions R_PAREN\n");}
     ;
 
-Declarations: /* epsilon */ { $$.code = ""; $$.ids = list<string>(); }
-    | Declaration SEMICOLON Declarations 
-    	{
-    	    $$.code = $1.code + "\n" + $3.code;
-	    $$.ids = $1.ids;
-	    for (auto it = $3.ids.begin(); it != $3.ids.end(); it++) {
-	    	$$.ids.push_back(*it);
-	    }
-    	}
+Declarations: /* epsilon */ {printf("Declarations -> epsilon\n");}
+    | Declaration SEMICOLON Declarations {printf("Declarations -> Declaration SEMICOLON Declarations\n");}
     ;
-Declaration: Idents COLON INTEGER 
-	{
-		for (auto it = $1.begin(); it != $1.end(); it++) {
-			$$.code += ". " + *it + "\n";
-			$$.ids.push_back(*it);
-		}
-	}
-    | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
-    {
-    		for (auto it = $1.begin(); it != $1.end(); it++) {
-			$$.code += ".[] " + *it + ", " + to_string($5) + "\n";
-			$$.ids.push_back(*it);
-		}
-    }
+Declaration: Idents COLON INTEGER {printf("Declaration -> IDENT COLON INTEGER\n");}
+    | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER {printf("Declaration -> IDENT COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER\n");}
     | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER {printf("Declaration -> IDENT COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER\n");}
     ;
 
@@ -192,10 +140,7 @@ RelationAndExpr: RelationExpr {printf("RelationAndExpr -> RelationExpr\n");}
     | RelationExpr AND RelationAndExpr {printf("RelationAndExpr -> RelationExpr AND RelationAndExpr\n");}
     ;
 
-/* Steven */
 RelationExpr: Expression Comparison Expression {printf("RelationExpr -> Expression Comp Expression\n");}
-
-
     | TRUE {printf("RelationExpr -> TRUE\n");}
     | FALSE {printf("RelationExpr -> FALSE\n");}
     | L_PAREN BoolExpr R_PAREN {printf("RelationExpr -> L_PAREN BoolExpr R_PAREN\n");}
@@ -205,13 +150,10 @@ RelationExpr: Expression Comparison Expression {printf("RelationExpr -> Expressi
         | NOT L_PAREN BoolExpr R_PAREN {printf("RelationExpr -> NOT L_PAREN BoolExpr R_PAREN\n");}
         ;
 
-
 Expressions: /* epsilon */ {printf("Expressions -> epsilon\n");}
     | Expression {printf("Expressions -> Expression\n");}
     | Expression COMMA Expressions {printf("Expressions -> Expression COMMA Expressions\n");}
     ;
-    
-   /* Steven */
 Expression: MultiplicativeExpr {printf("Expression -> MultiplicativeExpr\n");}
     | MultiplicativeExpr ADD Expression {printf("MultiplicativeExpr ADD Expression\n");}
     | MultiplicativeExpr SUB Expression {printf("MultiplicativeExpr SUB Expression\n");}
@@ -229,7 +171,7 @@ Var: Ident {printf("Var -> IDENT\n");}
 // Additional C Code
 int main (int argc, char* argv[]) {
 	if (argc > 1) {
-        yyin = fopen(argv[1], "r");
+        FILE* yyin = fopen(argv[1], "r");
         if (yyin == NULL){
             printf("syntax: %s filename\n", argv[0]);
         }//end if
