@@ -101,12 +101,13 @@ Statement: Var ASSIGN Expression {printf("\n");}
     | RETURN Expression {printf("Statement -> RETURN\n");}
     ;
 
-Comparison: EQ {printf("Comparison -> EQ\n");}
-    | NEQ {printf("Comparison -> NEQ\n");}
-    | LT {printf("Comparison -> LT\n");}
-    | GT {printf("Comparison -> GT\n");}
-    | LTE {printf("Comparison -> LTE\n");}
-    | GTE {printf("Comparison -> GTE\n");}
+/* Steven */
+Comparison: EQ {printf( $$ = "=="; }
+    | NEQ { $$ = "!="; }
+    | LT { $$ = "<"; }
+    | GT { $$ = ">"; }
+    | LTE { $$ = "<="; }
+    | GTE { $$ = ">="; }
     ;
 
 MultiplicativeExpr: Term {printf("multiplicative-expr -> Term\n");}
@@ -140,6 +141,7 @@ RelationAndExpr: RelationExpr {printf("RelationAndExpr -> RelationExpr\n");}
     | RelationExpr AND RelationAndExpr {printf("RelationAndExpr -> RelationExpr AND RelationAndExpr\n");}
     ;
 
+/* Steven */
 RelationExpr: Expression Comparison Expression {printf("RelationExpr -> Expression Comp Expression\n");}
     | TRUE {printf("RelationExpr -> TRUE\n");}
     | FALSE {printf("RelationExpr -> FALSE\n");}
@@ -150,10 +152,13 @@ RelationExpr: Expression Comparison Expression {printf("RelationExpr -> Expressi
         | NOT L_PAREN BoolExpr R_PAREN {printf("RelationExpr -> NOT L_PAREN BoolExpr R_PAREN\n");}
         ;
 
+
 Expressions: /* epsilon */ {printf("Expressions -> epsilon\n");}
     | Expression {printf("Expressions -> Expression\n");}
     | Expression COMMA Expressions {printf("Expressions -> Expression COMMA Expressions\n");}
     ;
+    
+   /* Steven */
 Expression: MultiplicativeExpr {printf("Expression -> MultiplicativeExpr\n");}
     | MultiplicativeExpr ADD Expression {printf("MultiplicativeExpr ADD Expression\n");}
     | MultiplicativeExpr SUB Expression {printf("MultiplicativeExpr SUB Expression\n");}
