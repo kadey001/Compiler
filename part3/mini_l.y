@@ -79,9 +79,9 @@
 %left R_SQUARE_BRACKET
 %right ASSIGN
 
-%type <string> program function identifier statements
-%type <dec_type> declarations declaration
-%type <list<string>> identifier_loop
+%type <string> Program Function Functions Ident Statements
+%type <dec_type> Declarations Declaration
+%type <list<string>> Idents
 
 
 %% /* Grammar Rules */
