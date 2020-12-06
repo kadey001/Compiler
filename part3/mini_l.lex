@@ -1,4 +1,5 @@
 %{
+   #include <string>
    #include "y.tab.h"
    int currLine = 1; 
    int currPos = 1;
@@ -80,3 +81,4 @@ ending_iden_char = {letter}|{digit}
 . {printf("Error at line: %d, column: %d: unrecognized symbol: \"%c\"\n", currLine, currPos, *yytext); exit(0);}
 
 %%
+

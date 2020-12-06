@@ -1,76 +1,58 @@
 %{
-  // C Declarations
-  #include <stdio.h>
-  #include <stdlib.h>
-  void yyerror(const char *msg);
-  extern int currLine;
-  extern int currPos;
-  //FILE * yyin;
-  int yylex();
 %}
+
+%code requires{
+   #include <string>
+   #include <list>
+   #include <iostream>
+   #include <stdio.h>
+   #include <stdlib.h>
+   void yyerror(const char* msg);
+   int yylex();
+   extern int currPos;
+   extern int currLine;
+   using namespace std;
+
+   struct dec_type {
+      string code;
+      list<string> ids;
+   };
+
+}
 // Bison Declarations
 
 %union{
   char* sval;
   int ival;
+  dec_type* dec; 
  }
 
 %error-verbose
 %start Program
 
-%token FUNCTION
-%token BEGIN_PARAMS
-%token END_PARAMS
-%token BEGIN_LOCALS
-%token END_LOCALS
-%token BEGIN_BODY
-%token END_BODY
-%token INTEGER
-%token ARRAY
-%token OF
-%token IF
-%token THEN
-%token ENDIF
-%token ELSE
-%token WHILE
-%token DO
-%token FOR
-%token BEGINLOOP
-%token ENDLOOP
-%token CONTINUE
-%token READ
-%token WRITE
-%left AND
-%left OR
-%right NOT
-%token TRUE
-%token FALSE
-%token RETURN
-
-%left SUB
-%left ADD
-%left MULT
-%left DIV
-%left MOD
-
-%left EQ
-%left NEQ
-%left LT
-%left GT
-%left LTE
-%left GTE
-
 %token <sval> IDENT
 %token <ival> NUMBER
+%token FUNCTION SEMICOLON TRUE FALSE RETURN
+%token BEGIN_PARAMS END_PARAMS BEGIN_LOCALS
+%token END_LOCALS BEGIN_BODY END_BODY INTEGER
+%token ARRAY OF IF THEN ENDIF ELSE WHILE DO FOR
+%token BEGINLOOP ENDLOOP CONTINUE READ WRITE
+%token COLON COMMA 
 
-%token SEMICOLON
-%token COLON
-%token COMMA
-%left L_PAREN
-%left R_PAREN
-%left L_SQUARE_BRACKET
-%left R_SQUARE_BRACKET
 %right ASSIGN
+%left OR
+%left AND
+%right NOT
+%left LT LTE GT GTE EQ NEQ 
+%left ADD SUB
+%left MULT DIV MOD 
+%right UMINUS
+%left L_SQUARE_BRACKET R_SQUARE_BRACKET
+%left L_PAREN R_PAREN
+
+%type <sval> Program Function Ident Statements
+%type <dec_type> Declarations Declaration
+
 
 %% /* Grammar Rules */
 
@@ -84,7 +66,7 @@ Function: FUNCTION Ident SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LO
 Idents: Ident {printf("Idents -> Ident\n");}
     | Ident COMMA Idents {printf("Idents -> Ident COMMA Idents\n");}
     ;
-Ident: IDENT {printf("Ident -> IDENT %s\n", $1);};
+Ident: IDENT {printf("Ident -> IDENT %s\n", $1 );};
 
 Statements: /* epsilon */ {printf("Statements -> epsilon\n");}
     | Statement SEMICOLON Statements {printf("Statements-> Statement SEMICOLON Statements\n");}
