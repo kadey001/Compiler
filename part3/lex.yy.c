@@ -1086,7 +1086,7 @@ YY_RULE_SETUP
 case 49:
 YY_RULE_SETUP
 #line 73 "mini_l.lex"
-{currPos+=yyleng; yylval.sval = yytext; return IDENT;}
+{currPos+=yyleng; yylval.sval = strdup(yytext); return IDENT;}
 	YY_BREAK
 case 50:
 YY_RULE_SETUP

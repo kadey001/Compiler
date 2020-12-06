@@ -70,7 +70,7 @@ ending_iden_char = {letter}|{digit}
 "]" {currPos+=yyleng; return R_SQUARE_BRACKET;}
 
 {letter}{char}*{underscore} {printf("Error at line %d, column %d: identifier \"%s\" cannot end with an underscore\n", currLine, currPos, yytext); exit(0);}
-{letter}{char}*   {currPos+=yyleng; yylval.sval = yytext; return IDENT;}
+{letter}{char}*   {currPos+=yyleng; yylval.sval = strdup(yytext); return IDENT;}
 {digit}+  {currPos += yyleng; yylval.ival = atoi(yytext); return NUMBER;}
 
 {space}+ { currPos+=yyleng;}

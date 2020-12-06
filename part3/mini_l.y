@@ -7,15 +7,27 @@
    #include <iostream>
    #include <stdio.h>
    #include <stdlib.h>
+   #include <string.h>
+   #include <sstream>
    void yyerror(const char* msg);
    int yylex();
    extern int currPos;
    extern int currLine;
    using namespace std;
 
+
+
    struct dec_type {
       string code;
       list<string> ids;
+   };
+   
+   struct idents_type {
+      list<string> lst;
+   };
+
+   struct stmts_type {
+      list<string> lst;
    };
 
 }
@@ -25,6 +37,8 @@
   char* sval;
   int ival;
   dec_type* dec; 
+  idents_type* idents;
+  stmts_type* stmts;
  }
 
 %error-verbose
@@ -50,28 +64,148 @@
 %left L_SQUARE_BRACKET R_SQUARE_BRACKET
 %left L_PAREN R_PAREN
 
-%type <sval> Program Function Ident Statements
-%type <dec_type> Declarations Declaration
-
+%type <sval> Program Function Functions Ident Statement
+%type <dec> Declarations Declaration 
+%type <idents> Idents
+%type <stmts> Statements
 
 %% /* Grammar Rules */
 
-Program: Functions {printf("Program -> Functions\n");};
+Program: Functions { cout << $1 << endl;  };
 
-Functions: /* epsilon */ {printf("Functions -> epsilon\n");}
-    | Function Functions {printf("Functions -> Function Functions\n");}
-    ;
-Function: FUNCTION Ident SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY {printf("Function -> FUNCTION IDENT SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY\n");};
+Functions: /* epsilon */ {  $$ = "";   }
+    | Function Functions 
+  { 
+     stringstream ss;
+     ss << $1 << endl << $2; 
+     $$ = const_cast<char*>(ss.str().c_str());
+     
+  }
+;
 
-Idents: Ident {printf("Idents -> Ident\n");}
-    | Ident COMMA Idents {printf("Idents -> Ident COMMA Idents\n");}
-    ;
-Ident: IDENT {printf("Ident -> IDENT %s\n", $1 );};
 
-Statements: /* epsilon */ {printf("Statements -> epsilon\n");}
-    | Statement SEMICOLON Statements {printf("Statements-> Statement SEMICOLON Statements\n");}
+Function: FUNCTION Ident SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY 
+    {
+        stringstream ss;
+
+        ss << "func " << $2 << endl;
+        ss << $5->code;
+
+        int i = 0;
+
+       
+        for (list<string>::iterator it = $5->ids.begin(); it != $5->ids.end(); it++) {
+          ss << *it << " $" << to_string(i) << endl;
+          i++;
+        }
+        
+
+        ss << $8->code;
+        ss << "$11";
+        ss << "endfunc";
+        $$ = const_cast<char*>(ss.str().c_str());
+
+    };
+
+
+Declarations: /* epsilon */ 
+     { 
+        $$ = new dec_type();
+        $$->ids = list<string>(); 
+
+     }
+    | Declaration SEMICOLON Declarations 
+  {
+      $$ = new dec_type();
+      stringstream ss;
+
+      ss << $1->code << "\n" << $3->code;
+
+      $$->code = const_cast<char*>(ss.str().c_str());
+
+      $$->ids = $1->ids;
+      for (list<string>::iterator it = $3->ids.begin(); it != $3->ids.end(); it++) {
+        $$->ids.push_back( (*it).c_str() );
+      }
+      
+  }
     ;
-Statement: Var ASSIGN Expression {printf("\n");}
+Declaration: Idents COLON INTEGER 
+    {
+        $$ = new dec_type();
+        stringstream ss;
+
+        for (list<string>::iterator it = $1->lst.begin(); it != $1->lst.end(); it++) {
+            ss << ". " << *it << endl;
+            $$->ids.push_back( (*it).c_str() );
+        }
+
+        $$->code = const_cast<char*>(ss.str().c_str());
+
+    }
+    | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
+  { 
+      $$ = new dec_type();
+      stringstream ss;
+
+      for (list<string>::iterator it = $1->lst.begin(); it != $1->lst.end(); it++) {
+          ss << ".[] " << *it << ", " << to_string($5) << endl;
+          $$->ids.push_back( (*it).c_str() );
+      }
+      $$->code = const_cast<char*>(ss.str().c_str());
+
+  }
+    | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
+        {
+          printf("xd");
+          $$ = new dec_type();
+          printf("poop");
+        }
+  ;
+
+
+
+
+Idents: Ident 
+      {
+        $$ = new idents_type();
+        $$->lst.push_front($1);
+      }
+    | Ident COMMA Idents 
+      {
+        $$ = new idents_type();
+        $$->lst = $3->lst;
+        $$->lst.push_front($1);
+      }
+    ;
+Ident: IDENT { $$ = $1; };
+
+
+
+
+
+
+
+
+
+
+
+
+
+Statements: /* epsilon */
+       { 
+           $$ = new stmts_type();
+           $$->lst = list<string>();
+       }
+    | Statement SEMICOLON Statements 
+      { 
+          $$ = new stmts_type();
+          stringstream ss;
+
+          printf("Statements-> Statement SEMICOLON Statements\n");
+      }
+    ;
+Statement: Var ASSIGN Expression {  }
     | IF BoolExpr THEN Statements ENDIF {printf("Statement -> IF BoolExpr THEN Statements ENDIF\n");}
     | IF BoolExpr THEN Statements ELSE Statements ENDIF {printf("Statement -> IF BoolExpr THEN Statements ELSE Statements ENDIF\n");}
     | WHILE BoolExpr BEGINLOOP Statements ENDLOOP {printf("Statement -> WHILE BoolExpr Statements ENDLOOP\n");}
@@ -106,13 +240,7 @@ Term: Var {printf("Term -> Var\n");}
     | Ident L_PAREN Expressions R_PAREN {printf("Term -> IDENT L_PAREN Expressions R_PAREN\n");}
     ;
 
-Declarations: /* epsilon */ {printf("Declarations -> epsilon\n");}
-    | Declaration SEMICOLON Declarations {printf("Declarations -> Declaration SEMICOLON Declarations\n");}
-    ;
-Declaration: Idents COLON INTEGER {printf("Declaration -> IDENT COLON INTEGER\n");}
-    | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER {printf("Declaration -> IDENT COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER\n");}
-    | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER {printf("Declaration -> IDENT COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER\n");}
-    ;
+
 
 BoolExpr: RelationAndExpr {printf("BoolExpr -> RelationAndExpr\n");} 
     | RelationAndExpr OR BoolExpr {printf("BoolExpr -> RelationAndExpr OR RelationAndExpr\n");}
@@ -152,7 +280,7 @@ Var: Ident {printf("Var -> IDENT\n");}
 %%
 // Additional C Code
 int main (int argc, char* argv[]) {
-	if (argc > 1) {
+  if (argc > 1) {
         FILE* yyin = fopen(argv[1], "r");
         if (yyin == NULL){
             printf("syntax: %s filename\n", argv[0]);
@@ -165,3 +293,4 @@ int main (int argc, char* argv[]) {
 void yyerror(const char* msg) {
     printf("* Line %d, position %d: %s\n", currLine, currPos, msg);
 }
+
