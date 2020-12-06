@@ -1,4 +1,5 @@
 %{
+   int temp_counter = 0;
 %}
 
 %code requires{
@@ -26,9 +27,10 @@
       list<string> lst;
    };
 
-   struct stmts_type {
-      list<string> lst;
-   };
+   string GetNextTemp();
+   string GetCurrentTemp();
+
+
 
 }
 // Bison Declarations
@@ -38,7 +40,6 @@
   int ival;
   dec_type* dec; 
   idents_type* idents;
-  stmts_type* stmts;
  }
 
 %error-verbose
@@ -64,10 +65,9 @@
 %left L_SQUARE_BRACKET R_SQUARE_BRACKET
 %left L_PAREN R_PAREN
 
-%type <sval> Program Function Functions Ident Statement
+%type <sval> Program Function Functions Ident Statement Statements Var Term Expression  MultiplicativeExpr
 %type <dec> Declarations Declaration 
 %type <idents> Idents
-%type <stmts> Statements
 
 %% /* Grammar Rules */
 
@@ -95,13 +95,13 @@ Function: FUNCTION Ident SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LO
 
        
         for (list<string>::iterator it = $5->ids.begin(); it != $5->ids.end(); it++) {
-          ss << *it << " $" << to_string(i) << endl;
+          ss << "= "<< *it << ", $" << to_string(i) << endl;
           i++;
         }
         
 
         ss << $8->code;
-        ss << "$11";
+        ss << $11;
         ss << "endfunc";
         $$ = const_cast<char*>(ss.str().c_str());
 
@@ -119,7 +119,7 @@ Declarations: /* epsilon */
       $$ = new dec_type();
       stringstream ss;
 
-      ss << $1->code << "\n" << $3->code;
+      ss << $1->code << $3->code;
 
       $$->code = const_cast<char*>(ss.str().c_str());
 
@@ -188,24 +188,29 @@ Ident: IDENT { $$ = $1; };
 
 
 
-
-
-
-
 Statements: /* epsilon */
        { 
-           $$ = new stmts_type();
-           $$->lst = list<string>();
+           $$ = "";
        }
     | Statement SEMICOLON Statements 
       { 
-          $$ = new stmts_type();
           stringstream ss;
-
+          $$ = $1;
           printf("Statements-> Statement SEMICOLON Statements\n");
       }
     ;
-Statement: Var ASSIGN Expression {  }
+Statement: 
+    Var ASSIGN Expression 
+    { 
+       stringstream ss;
+
+
+       /*  I LEFT OFF HERE */
+       ss << $3;
+       ss << "= " << $1 << ", " << GetCurrentTemp() << endl;
+      
+       $$ = const_cast<char*>(ss.str().c_str());
+    }
     | IF BoolExpr THEN Statements ENDIF {printf("Statement -> IF BoolExpr THEN Statements ENDIF\n");}
     | IF BoolExpr THEN Statements ELSE Statements ENDIF {printf("Statement -> IF BoolExpr THEN Statements ELSE Statements ENDIF\n");}
     | WHILE BoolExpr BEGINLOOP Statements ENDLOOP {printf("Statement -> WHILE BoolExpr Statements ENDLOOP\n");}
@@ -217,6 +222,69 @@ Statement: Var ASSIGN Expression {  }
     | RETURN Expression {printf("Statement -> RETURN\n");}
     ;
 
+
+Expressions: /* epsilon */ {printf("Expressions -> epsilon\n");}
+    | Expression {printf("Expressions -> Expression\n");}
+    | Expression COMMA Expressions {printf("Expressions -> Expression COMMA Expressions\n");}
+    ;
+Expression: MultiplicativeExpr {printf("Expression -> MultiplicativeExpr\n");}
+    | MultiplicativeExpr ADD Expression 
+      {
+        stringstream ss;
+        string op1 = GetNextTemp();
+        string op2 = GetNextTemp();
+        string op3 = GetNextTemp();
+
+        ss << ". " << op1 << endl;
+        ss << "= " << op1 << ", " << $1 << endl;
+
+        ss << ". " << op2 << endl;
+        ss << "= " << op2 << ", " << $3 << endl;
+
+        ss << "+, " << op3 << ", " << op1 << ", " << op2 << endl;
+
+        $$ = const_cast<char*>(ss.str().c_str());
+
+        printf("MultiplicativeExpr ADD Expression\n");
+
+      }
+    | MultiplicativeExpr SUB Expression {printf("MultiplicativeExpr SUB Expression\n");}
+    ;
+
+MultiplicativeExpr: Term 
+    {
+        printf("multiplicative-expr -> Term\n");
+        $$ = $1;
+    }
+    | Term MULT MultiplicativeExpr {printf("multiplicative-expr -> Term MULT MultiplicativeExpr\n");}
+    | Term DIV MultiplicativeExpr {printf("multiplicative-expr -> Term DIV MultiplicativeExpr\n");}
+    | Term MOD MultiplicativeExpr {printf("multiplicative-expr -> Term MOD MultiplicativeExpr\n");}
+    ;
+
+Term: Var 
+    {
+      $$ = $1;
+    }
+    | NUMBER {printf("Term -> NUMBER\n");}
+    | L_PAREN Expression R_PAREN {printf("Term -> L_PAREN Expression R_PAREN\n");}
+        | SUB Var {printf("Term -> SUB Var\n");}
+        | SUB NUMBER {printf("Term -> SUB NUMBER\n");}
+        | SUB L_PAREN Expression R_PAREN {printf("Term -> SUB L_PAREN Expression R_PAREN\n");}
+    | Ident L_PAREN Expressions R_PAREN {printf("Term -> IDENT L_PAREN Expressions R_PAREN\n");}
+    ;
+
+Vars: Var {printf("Vars -> Var\n");}
+    | Var COMMA Vars {printf("Vars -> Var COMMA Vars\n");}
+    ;
+Var: Ident 
+    {
+       $$ = $1;
+    }
+    | Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
+    | Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
+    ;
+
+
 Comparison: EQ {printf("Comparison -> EQ\n");}
     | NEQ {printf("Comparison -> NEQ\n");}
     | LT {printf("Comparison -> LT\n");}
@@ -225,20 +293,9 @@ Comparison: EQ {printf("Comparison -> EQ\n");}
     | GTE {printf("Comparison -> GTE\n");}
     ;
 
-MultiplicativeExpr: Term {printf("multiplicative-expr -> Term\n");}
-    | Term MULT MultiplicativeExpr {printf("multiplicative-expr -> Term MULT MultiplicativeExpr\n");}
-    | Term DIV MultiplicativeExpr {printf("multiplicative-expr -> Term DIV MultiplicativeExpr\n");}
-    | Term MOD MultiplicativeExpr {printf("multiplicative-expr -> Term MOD MultiplicativeExpr\n");}
-    ;
 
-Term: Var {printf("Term -> Var\n");}
-    | NUMBER {printf("Term -> NUMBER\n");}
-    | L_PAREN Expression R_PAREN {printf("Term -> L_PAREN Expression R_PAREN\n");}
-        | SUB Var {printf("Term -> SUB Var\n");}
-        | SUB NUMBER {printf("Term -> SUB NUMBER\n");}
-        | SUB L_PAREN Expression R_PAREN {printf("Term -> SUB L_PAREN Expression R_PAREN\n");}
-    | Ident L_PAREN Expressions R_PAREN {printf("Term -> IDENT L_PAREN Expressions R_PAREN\n");}
-    ;
+
+
 
 
 
@@ -260,22 +317,10 @@ RelationExpr: Expression Comparison Expression {printf("RelationExpr -> Expressi
         | NOT L_PAREN BoolExpr R_PAREN {printf("RelationExpr -> NOT L_PAREN BoolExpr R_PAREN\n");}
         ;
 
-Expressions: /* epsilon */ {printf("Expressions -> epsilon\n");}
-    | Expression {printf("Expressions -> Expression\n");}
-    | Expression COMMA Expressions {printf("Expressions -> Expression COMMA Expressions\n");}
-    ;
-Expression: MultiplicativeExpr {printf("Expression -> MultiplicativeExpr\n");}
-    | MultiplicativeExpr ADD Expression {printf("MultiplicativeExpr ADD Expression\n");}
-    | MultiplicativeExpr SUB Expression {printf("MultiplicativeExpr SUB Expression\n");}
-    ;
 
-Vars: Var {printf("Vars -> Var\n");}
-    | Var COMMA Vars {printf("Vars -> Var COMMA Vars\n");}
-    ;
-Var: Ident {printf("Var -> IDENT\n");}
-    | Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
-    | Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
-    ;
+
+
+
 
 %%
 // Additional C Code
@@ -294,3 +339,13 @@ void yyerror(const char* msg) {
     printf("* Line %d, position %d: %s\n", currLine, currPos, msg);
 }
 
+string GetNextTemp() {
+  string s = "__temp__" + to_string(temp_counter);
+  temp_counter += 1;
+  return s;
+}
+
+string GetCurrentTemp() {
+  string s = "__temp__" + to_string(temp_counter - 1);
+  return s;
+}
