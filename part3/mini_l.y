@@ -1,4 +1,8 @@
 %{
+   #include <stack>
+   #include <string>
+   using namespace std;
+   stack<string> temps;
    int temp_counter = 0;
 %}
 
@@ -46,7 +50,7 @@
 %start Program
 
 %token <sval> IDENT
-%token <ival> NUMBER
+%token <sval> NUMBER
 %token FUNCTION SEMICOLON TRUE FALSE RETURN
 %token BEGIN_PARAMS END_PARAMS BEGIN_LOCALS
 %token END_LOCALS BEGIN_BODY END_BODY INTEGER
@@ -65,7 +69,7 @@
 %left L_SQUARE_BRACKET R_SQUARE_BRACKET
 %left L_PAREN R_PAREN
 
-%type <sval> Program Function Functions Ident Statement Statements Var Term Expression  MultiplicativeExpr
+%type <sval> Program Function Functions Ident Statement Statements Var Term Expressions Expression  MultiplicativeExpr 
 %type <dec> Declarations Declaration 
 %type <idents> Idents
 
@@ -149,7 +153,7 @@ Declaration: Idents COLON INTEGER
       stringstream ss;
 
       for (list<string>::iterator it = $1->lst.begin(); it != $1->lst.end(); it++) {
-          ss << ".[] " << *it << ", " << to_string($5) << endl;
+          ss << ".[] " << *it << ", " << $5 << endl;
           $$->ids.push_back( (*it).c_str() );
       }
       $$->code = const_cast<char*>(ss.str().c_str());
@@ -195,17 +199,14 @@ Statements: /* epsilon */
     | Statement SEMICOLON Statements 
       { 
           stringstream ss;
-          $$ = $1;
-          printf("Statements-> Statement SEMICOLON Statements\n");
+          ss << $1 << endl << $3 << endl;
+          $$ = const_cast<char*>(ss.str().c_str());
       }
     ;
 Statement: 
     Var ASSIGN Expression 
     { 
        stringstream ss;
-
-
-       /*  I LEFT OFF HERE */
        ss << $3;
        ss << "= " << $1 << ", " << GetCurrentTemp() << endl;
       
@@ -223,49 +224,233 @@ Statement:
     ;
 
 
-Expressions: /* epsilon */ {printf("Expressions -> epsilon\n");}
-    | Expression {printf("Expressions -> Expression\n");}
-    | Expression COMMA Expressions {printf("Expressions -> Expression COMMA Expressions\n");}
+Expressions: /* epsilon */ 
+{
+
+  $$ = "";
+
+}
+    | Expression 
+    {
+        $$ = $1;
+    }
+    | Expressions COMMA Expression 
+    {
+        stringstream ss;
+        ss << $1 << "\n" << $3 << endl;
+        $$ = const_cast<char*>(ss.str().c_str());
+    }
     ;
-Expression: MultiplicativeExpr {printf("Expression -> MultiplicativeExpr\n");}
-    | MultiplicativeExpr ADD Expression 
+Expression: MultiplicativeExpr 
+    {
+        $$ = $1;
+
+    }
+    | Expression ADD MultiplicativeExpr 
       {
         stringstream ss;
-        string op1 = GetNextTemp();
-        string op2 = GetNextTemp();
-        string op3 = GetNextTemp();
+        string op1;
+        string op2;
+        string op3;
 
-        ss << ". " << op1 << endl;
-        ss << "= " << op1 << ", " << $1 << endl;
+        if (  (string($1).find("\n") == string::npos) ) {
+          op1 = GetNextTemp();
+          ss << ". " << op1 << endl;
+          ss << "= " << op1 << ", " << $1 << endl;
 
-        ss << ". " << op2 << endl;
-        ss << "= " << op2 << ", " << $3 << endl;
+        }
+        else {
+          op1 = temps.top(); temps.pop();
+          ss << $1;
 
+        }
+
+
+        if ( string($3).find("\n") == string::npos ) {
+          op2 = GetNextTemp();
+          ss << ". " << op2 << endl;
+          ss << "= " << op2 << ", " << $3 << endl;
+
+        }
+        else {
+          op2 = temps.top(); temps.pop();
+          ss << $3;
+
+        }
+
+        op3 = GetNextTemp();
+        ss << ". " << op3 << endl;
         ss << "+, " << op3 << ", " << op1 << ", " << op2 << endl;
-
+        temps.push(op3);
         $$ = const_cast<char*>(ss.str().c_str());
 
-        printf("MultiplicativeExpr ADD Expression\n");
 
       }
-    | MultiplicativeExpr SUB Expression {printf("MultiplicativeExpr SUB Expression\n");}
+    | Expression SUB MultiplicativeExpr 
+    {
+
+        stringstream ss;
+        string op1;
+        string op2;
+        string op3;
+
+        if (  (string($1).find("\n") == string::npos) ) {
+          op1 = GetNextTemp();
+          ss << ". " << op1 << endl;
+          ss << "= " << op1 << ", " << $1 << endl;
+
+        }
+        else {
+          op1 = temps.top(); temps.pop();
+          ss << $1;
+
+        }
+
+
+        if ( string($3).find("\n") == string::npos ) {
+          op2 = GetNextTemp();
+          ss << ". " << op2 << endl;
+          ss << "= " << op2 << ", " << $3 << endl;
+
+        }
+        else {
+          op2 = temps.top(); temps.pop();
+          ss << $3;
+
+        }
+
+        op3 = GetNextTemp();
+        ss << ". " << op3 << endl;
+        ss << "-, " << op3 << ", " << op1 << ", " << op2 << endl;
+        temps.push(op3);
+        $$ = const_cast<char*>(ss.str().c_str());
+    }
     ;
 
 MultiplicativeExpr: Term 
     {
-        printf("multiplicative-expr -> Term\n");
         $$ = $1;
     }
-    | Term MULT MultiplicativeExpr {printf("multiplicative-expr -> Term MULT MultiplicativeExpr\n");}
-    | Term DIV MultiplicativeExpr {printf("multiplicative-expr -> Term DIV MultiplicativeExpr\n");}
-    | Term MOD MultiplicativeExpr {printf("multiplicative-expr -> Term MOD MultiplicativeExpr\n");}
+    | MultiplicativeExpr MULT Term 
+      {
+        stringstream ss;
+        string op1;
+        string op2;
+        string op3;
+
+
+        if ( string($1).find("\n") == string::npos ) {
+
+          op1 = GetNextTemp();
+          ss << ". " << op1 << endl;
+          ss << "= " << op1 << ", " << $1 << endl;
+        }
+
+        else {
+          op1 = temps.top(); temps.pop();
+          ss << $1;
+        }
+
+        if ( string($3).find("\n") == string::npos ) {
+          op2 = GetNextTemp();
+          ss << ". " << op2 << endl;
+          ss << "= " << op2 << ", " << $3 << endl;
+        }
+        else {
+           op2 = temps.top(); temps.pop();
+          ss << $3;
+        }
+
+        op3 = GetNextTemp();
+        ss << ". " << op3 << endl;
+        ss << "*, " << op3 << ", " << op1 << ", " << op2 << endl;
+        temps.push(op3);
+        $$ = const_cast<char*>(ss.str().c_str());
+
+
+      }
+    | MultiplicativeExpr DIV Term 
+      {
+        stringstream ss;
+        string op1;
+        string op2;
+        string op3;
+
+
+        if ( string($1).find("\n") == string::npos ) {
+
+          op1 = GetNextTemp();
+          ss << ". " << op1 << endl;
+          ss << "= " << op1 << ", " << $1 << endl;
+        }
+
+        else {
+          op1 = temps.top(); temps.pop();
+          ss << $1;
+        }
+
+        if ( string($3).find("\n") == string::npos ) {
+          op2 = GetNextTemp();
+          ss << ". " << op2 << endl;
+          ss << "= " << op2 << ", " << $3 << endl;
+        }
+        else {
+           op2 = temps.top(); temps.pop();
+          ss << $3;
+        }
+
+        op3 = GetNextTemp();
+        ss << ". " << op3 << endl;
+        ss << "/, " << op3 << ", " << op1 << ", " << op2 << endl;
+        temps.push(op3);
+        $$ = const_cast<char*>(ss.str().c_str());
+      }
+    | MultiplicativeExpr MOD Term 
+      {
+        stringstream ss;
+        string op1;
+        string op2;
+        string op3;
+
+
+        if ( string($1).find("\n") == string::npos ) {
+
+          op1 = GetNextTemp();
+          ss << ". " << op1 << endl;
+          ss << "= " << op1 << ", " << $1 << endl;
+        }
+
+        else {
+          op1 = temps.top(); temps.pop();
+          ss << $1;
+        }
+
+        if ( string($3).find("\n") == string::npos ) {
+          op2 = GetNextTemp();
+          ss << ". " << op2 << endl;
+          ss << "= " << op2 << ", " << $3 << endl;
+        }
+        else {
+           op2 = temps.top(); temps.pop();
+          ss << $3;
+        }
+
+        op3 = GetNextTemp();
+        ss << ". " << op3 << endl;
+        ss << "%, " << op3 << ", " << op1 << ", " << op2 << endl;
+        temps.push(op3);
+        $$ = const_cast<char*>(ss.str().c_str());
+      }
     ;
 
 Term: Var 
     {
       $$ = $1;
     }
-    | NUMBER {printf("Term -> NUMBER\n");}
+    | NUMBER 
+    {
+      $$ = $1;
+    }
     | L_PAREN Expression R_PAREN {printf("Term -> L_PAREN Expression R_PAREN\n");}
         | SUB Var {printf("Term -> SUB Var\n");}
         | SUB NUMBER {printf("Term -> SUB NUMBER\n");}

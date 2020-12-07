@@ -42,16 +42,16 @@ Grammar
 
    25 Expressions: %empty
    26            | Expression
-   27            | Expression COMMA Expressions
+   27            | Expressions COMMA Expression
 
    28 Expression: MultiplicativeExpr
-   29           | MultiplicativeExpr ADD Expression
-   30           | MultiplicativeExpr SUB Expression
+   29           | Expression ADD MultiplicativeExpr
+   30           | Expression SUB MultiplicativeExpr
 
    31 MultiplicativeExpr: Term
-   32                   | Term MULT MultiplicativeExpr
-   33                   | Term DIV MultiplicativeExpr
-   34                   | Term MOD MultiplicativeExpr
+   32                   | MultiplicativeExpr MULT Term
+   33                   | MultiplicativeExpr DIV Term
+   34                   | MultiplicativeExpr MOD Term
 
    35 Term: Var
    36     | NUMBER
@@ -673,6 +673,11 @@ State 47
 State 48
 
    24 Statement: RETURN Expression .
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
+
+    ADD  shift, and go to state 77
+    SUB  shift, and go to state 78
 
     $default  reduce using rule 24 (Statement)
 
@@ -680,11 +685,13 @@ State 48
 State 49
 
    28 Expression: MultiplicativeExpr .
-   29           | MultiplicativeExpr . ADD Expression
-   30           | MultiplicativeExpr . SUB Expression
+   32 MultiplicativeExpr: MultiplicativeExpr . MULT Term
+   33                   | MultiplicativeExpr . DIV Term
+   34                   | MultiplicativeExpr . MOD Term
 
-    ADD  shift, and go to state 77
-    SUB  shift, and go to state 78
+    MULT  shift, and go to state 79
+    DIV   shift, and go to state 80
+    MOD   shift, and go to state 81
 
     $default  reduce using rule 28 (Expression)
 
@@ -692,13 +699,6 @@ State 49
 State 50
 
    31 MultiplicativeExpr: Term .
-   32                   | Term . MULT MultiplicativeExpr
-   33                   | Term . DIV MultiplicativeExpr
-   34                   | Term . MOD MultiplicativeExpr
-
-    MULT  shift, and go to state 79
-    DIV   shift, and go to state 80
-    MOD   shift, and go to state 81
 
     $default  reduce using rule 31 (MultiplicativeExpr)
 
@@ -770,6 +770,8 @@ State 55
 
 State 56
 
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
    57 RelationExpr: Expression . Comparison Expression
 
     LT   shift, and go to state 88
@@ -778,6 +780,8 @@ State 56
     GTE  shift, and go to state 91
     EQ   shift, and go to state 92
     NEQ  shift, and go to state 93
+    ADD  shift, and go to state 77
+    SUB  shift, and go to state 78
 
     Comparison  go to state 94
 
@@ -978,8 +982,12 @@ State 74
 
 State 75
 
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
    37 Term: L_PAREN Expression . R_PAREN
 
+    ADD      shift, and go to state 77
+    SUB      shift, and go to state 78
     R_PAREN  shift, and go to state 107
 
 
@@ -1004,7 +1012,7 @@ State 76
 
 State 77
 
-   29 Expression: MultiplicativeExpr ADD . Expression
+   29 Expression: Expression ADD . MultiplicativeExpr
 
     IDENT    shift, and go to state 5
     NUMBER   shift, and go to state 44
@@ -1012,15 +1020,14 @@ State 77
     L_PAREN  shift, and go to state 46
 
     Ident               go to state 47
-    Expression          go to state 110
-    MultiplicativeExpr  go to state 49
+    MultiplicativeExpr  go to state 110
     Term                go to state 50
     Var                 go to state 51
 
 
 State 78
 
-   30 Expression: MultiplicativeExpr SUB . Expression
+   30 Expression: Expression SUB . MultiplicativeExpr
 
     IDENT    shift, and go to state 5
     NUMBER   shift, and go to state 44
@@ -1028,55 +1035,51 @@ State 78
     L_PAREN  shift, and go to state 46
 
     Ident               go to state 47
-    Expression          go to state 111
-    MultiplicativeExpr  go to state 49
+    MultiplicativeExpr  go to state 111
     Term                go to state 50
     Var                 go to state 51
 
 
 State 79
 
-   32 MultiplicativeExpr: Term MULT . MultiplicativeExpr
+   32 MultiplicativeExpr: MultiplicativeExpr MULT . Term
 
     IDENT    shift, and go to state 5
     NUMBER   shift, and go to state 44
     SUB      shift, and go to state 45
     L_PAREN  shift, and go to state 46
 
-    Ident               go to state 47
-    MultiplicativeExpr  go to state 112
-    Term                go to state 50
-    Var                 go to state 51
+    Ident  go to state 47
+    Term   go to state 112
+    Var    go to state 51
 
 
 State 80
 
-   33 MultiplicativeExpr: Term DIV . MultiplicativeExpr
+   33 MultiplicativeExpr: MultiplicativeExpr DIV . Term
 
     IDENT    shift, and go to state 5
     NUMBER   shift, and go to state 44
     SUB      shift, and go to state 45
     L_PAREN  shift, and go to state 46
 
-    Ident               go to state 47
-    MultiplicativeExpr  go to state 113
-    Term                go to state 50
-    Var                 go to state 51
+    Ident  go to state 47
+    Term   go to state 113
+    Var    go to state 51
 
 
 State 81
 
-   34 MultiplicativeExpr: Term MOD . MultiplicativeExpr
+   34 MultiplicativeExpr: MultiplicativeExpr MOD . Term
 
     IDENT    shift, and go to state 5
     NUMBER   shift, and go to state 44
     SUB      shift, and go to state 45
     L_PAREN  shift, and go to state 46
 
-    Ident               go to state 47
-    MultiplicativeExpr  go to state 114
-    Term                go to state 50
-    Var                 go to state 51
+    Ident  go to state 47
+    Term   go to state 114
+    Var    go to state 51
 
 
 State 82
@@ -1118,6 +1121,8 @@ State 84
 
 State 85
 
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
    61 RelationExpr: NOT Expression . Comparison Expression
 
     LT   shift, and go to state 88
@@ -1126,12 +1131,16 @@ State 85
     GTE  shift, and go to state 91
     EQ   shift, and go to state 92
     NEQ  shift, and go to state 93
+    ADD  shift, and go to state 77
+    SUB  shift, and go to state 78
 
     Comparison  go to state 116
 
 
 State 86
 
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
    37 Term: L_PAREN Expression . R_PAREN
    57 RelationExpr: Expression . Comparison Expression
 
@@ -1141,6 +1150,8 @@ State 86
     GTE      shift, and go to state 91
     EQ       shift, and go to state 92
     NEQ      shift, and go to state 93
+    ADD      shift, and go to state 77
+    SUB      shift, and go to state 78
     R_PAREN  shift, and go to state 107
 
     Comparison  go to state 94
@@ -1326,9 +1337,13 @@ State 101
 
 State 102
 
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
    45 Var: Ident L_SQUARE_BRACKET Expression . R_SQUARE_BRACKET
    46    | Ident L_SQUARE_BRACKET Expression . R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET
 
+    ADD               shift, and go to state 77
+    SUB               shift, and go to state 78
     R_SQUARE_BRACKET  shift, and go to state 126
 
 
@@ -1342,6 +1357,11 @@ State 103
 State 104
 
    15 Statement: Var ASSIGN Expression .
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
+
+    ADD  shift, and go to state 77
+    SUB  shift, and go to state 78
 
     $default  reduce using rule 15 (Statement)
 
@@ -1355,8 +1375,12 @@ State 105
 
 State 106
 
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
    40 Term: SUB L_PAREN Expression . R_PAREN
 
+    ADD      shift, and go to state 77
+    SUB      shift, and go to state 78
     R_PAREN  shift, and go to state 128
 
 
@@ -1369,52 +1393,70 @@ State 107
 
 State 108
 
+   27 Expressions: Expressions . COMMA Expression
    41 Term: Ident L_PAREN Expressions . R_PAREN
 
-    R_PAREN  shift, and go to state 129
+    COMMA    shift, and go to state 129
+    R_PAREN  shift, and go to state 130
 
 
 State 109
 
    26 Expressions: Expression .
-   27            | Expression . COMMA Expressions
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
 
-    COMMA  shift, and go to state 130
+    ADD  shift, and go to state 77
+    SUB  shift, and go to state 78
 
     $default  reduce using rule 26 (Expressions)
 
 
 State 110
 
-   29 Expression: MultiplicativeExpr ADD Expression .
+   29 Expression: Expression ADD MultiplicativeExpr .
+   32 MultiplicativeExpr: MultiplicativeExpr . MULT Term
+   33                   | MultiplicativeExpr . DIV Term
+   34                   | MultiplicativeExpr . MOD Term
+
+    MULT  shift, and go to state 79
+    DIV   shift, and go to state 80
+    MOD   shift, and go to state 81
 
     $default  reduce using rule 29 (Expression)
 
 
 State 111
 
-   30 Expression: MultiplicativeExpr SUB Expression .
+   30 Expression: Expression SUB MultiplicativeExpr .
+   32 MultiplicativeExpr: MultiplicativeExpr . MULT Term
+   33                   | MultiplicativeExpr . DIV Term
+   34                   | MultiplicativeExpr . MOD Term
+
+    MULT  shift, and go to state 79
+    DIV   shift, and go to state 80
+    MOD   shift, and go to state 81
 
     $default  reduce using rule 30 (Expression)
 
 
 State 112
 
-   32 MultiplicativeExpr: Term MULT MultiplicativeExpr .
+   32 MultiplicativeExpr: MultiplicativeExpr MULT Term .
 
     $default  reduce using rule 32 (MultiplicativeExpr)
 
 
 State 113
 
-   33 MultiplicativeExpr: Term DIV MultiplicativeExpr .
+   33 MultiplicativeExpr: MultiplicativeExpr DIV Term .
 
     $default  reduce using rule 33 (MultiplicativeExpr)
 
 
 State 114
 
-   34 MultiplicativeExpr: Term MOD MultiplicativeExpr .
+   34 MultiplicativeExpr: MultiplicativeExpr MOD Term .
 
     $default  reduce using rule 34 (MultiplicativeExpr)
 
@@ -1451,7 +1493,12 @@ State 117
 
 State 118
 
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
    57 RelationExpr: Expression Comparison Expression .
+
+    ADD  shift, and go to state 77
+    SUB  shift, and go to state 78
 
     $default  reduce using rule 57 (RelationExpr)
 
@@ -1533,28 +1580,25 @@ State 128
 
 State 129
 
-   41 Term: Ident L_PAREN Expressions R_PAREN .
-
-    $default  reduce using rule 41 (Term)
-
-
-State 130
-
-   27 Expressions: Expression COMMA . Expressions
+   27 Expressions: Expressions COMMA . Expression
 
     IDENT    shift, and go to state 5
     NUMBER   shift, and go to state 44
     SUB      shift, and go to state 45
     L_PAREN  shift, and go to state 46
 
-    $default  reduce using rule 25 (Expressions)
-
     Ident               go to state 47
-    Expressions         go to state 140
-    Expression          go to state 109
+    Expression          go to state 140
     MultiplicativeExpr  go to state 49
     Term                go to state 50
     Var                 go to state 51
+
+
+State 130
+
+   41 Term: Ident L_PAREN Expressions R_PAREN .
+
+    $default  reduce using rule 41 (Term)
 
 
 State 131
@@ -1566,7 +1610,12 @@ State 131
 
 State 132
 
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
    61 RelationExpr: NOT Expression Comparison Expression .
+
+    ADD  shift, and go to state 77
+    SUB  shift, and go to state 78
 
     $default  reduce using rule 61 (RelationExpr)
 
@@ -1676,7 +1725,12 @@ State 139
 
 State 140
 
-   27 Expressions: Expression COMMA Expressions .
+   27 Expressions: Expressions COMMA Expression .
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
+
+    ADD  shift, and go to state 77
+    SUB  shift, and go to state 78
 
     $default  reduce using rule 27 (Expressions)
 
@@ -1704,8 +1758,12 @@ State 143
 
 State 144
 
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
    46 Var: Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression . R_SQUARE_BRACKET
 
+    ADD               shift, and go to state 77
+    SUB               shift, and go to state 78
     R_SQUARE_BRACKET  shift, and go to state 147
 
 
@@ -1759,8 +1817,12 @@ State 149
 State 150
 
    20 Statement: FOR Var ASSIGN NUMBER SEMICOLON BoolExpr SEMICOLON Var ASSIGN Expression . BEGINLOOP Statements ENDLOOP
+   29 Expression: Expression . ADD MultiplicativeExpr
+   30           | Expression . SUB MultiplicativeExpr
 
     BEGINLOOP  shift, and go to state 151
+    ADD        shift, and go to state 77
+    SUB        shift, and go to state 78
 
 
 State 151

@@ -3,8 +3,8 @@ beginparams
 	d,e : integer;
 endparams
 beginlocals
-	a,b,c : integer;
+	a,b,c,g : integer;
 endlocals
 beginbody
-	c := a + c;
+	c := c + 1;
 endbody
