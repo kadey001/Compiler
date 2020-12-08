@@ -1,13 +1,9 @@
 %{
-  #include <stack>
-  #include <string>
-  using namespace std;
-  stack<string> temps;
-  int temp_counter = 0;
-  void yyerror(const char *msg);
-  extern int currLine;
-  extern int currPos;
-  int yylex();
+   #include <stack>
+   #include <string>
+   using namespace std;
+   stack<string> temps;
+   int temp_counter = 0;
 %}
 
 %code requires{
