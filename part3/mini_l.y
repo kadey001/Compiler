@@ -1,38 +1,47 @@
 %{
-   #include <stack>
-   #include <string>
-   using namespace std;
-   stack<string> temps;
-   int temp_counter = 0;
+  #include <stack>
+  #include <string>
+  using namespace std;
+  stack<string> temps;
+  int temp_counter = 0;
+  void yyerror(const char *msg);
+  extern int currLine;
+  extern int currPos;
+  int yylex();
 %}
 
 %code requires{
-   #include <string>
-   #include <list>
-   #include <iostream>
-   #include <stdio.h>
-   #include <stdlib.h>
-   #include <string.h>
-   #include <sstream>
-   void yyerror(const char* msg);
-   int yylex();
-   extern int currPos;
-   extern int currLine;
-   using namespace std;
+  #include <string>
+  #include <list>
+  #include <iostream>
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <string.h>
+  #include <sstream>
+  void yyerror(const char* msg);
+  int yylex();
+  extern int currPos;
+  extern int currLine;
+  using namespace std;
 
 
 
-   struct dec_type {
-      string code;
-      list<string> ids;
-   };
-   
-   struct idents_type {
-      list<string> lst;
-   };
+  struct dec_type {
+    string code;
+    list<string> ids;
+    bool array;
+  };
+  
+  struct idents_type {
+    list<string> lst;
+  };
 
-   string GetNextTemp();
-   string GetCurrentTemp();
+  struct stat_type {
+    string code;
+  }
+
+  string GetNextTemp();
+  string GetCurrentTemp();
 
 
 
@@ -44,6 +53,7 @@
   int ival;
   dec_type* dec; 
   idents_type* idents;
+  stat_type* stats;
  }
 
 %error-verbose
@@ -51,6 +61,12 @@
 
 %token <sval> IDENT
 %token <sval> NUMBER
+
+%type <sval> Program Function Functions Ident Term Expressions Expression MultiplicativeExpr 
+%type <dec> Declarations Declaration Var Vars
+%type <stats> Statements Statement 
+%type <idents> Idents
+
 %token FUNCTION SEMICOLON TRUE FALSE RETURN
 %token BEGIN_PARAMS END_PARAMS BEGIN_LOCALS
 %token END_LOCALS BEGIN_BODY END_BODY INTEGER
@@ -69,9 +85,6 @@
 %left L_SQUARE_BRACKET R_SQUARE_BRACKET
 %left L_PAREN R_PAREN
 
-%type <sval> Program Function Functions Ident Statement Statements Var Term Expressions Expression  MultiplicativeExpr 
-%type <dec> Declarations Declaration 
-%type <idents> Idents
 
 %% /* Grammar Rules */
 
@@ -451,15 +464,32 @@ Term: Var
     {
       $$ = $1;
     }
-    | L_PAREN Expression R_PAREN {printf("Term -> L_PAREN Expression R_PAREN\n");}
+    | L_PAREN Expression R_PAREN {
+        printf("Term -> L_PAREN Expression R_PAREN\n");
+
+      }
         | SUB Var {printf("Term -> SUB Var\n");}
         | SUB NUMBER {printf("Term -> SUB NUMBER\n");}
         | SUB L_PAREN Expression R_PAREN {printf("Term -> SUB L_PAREN Expression R_PAREN\n");}
     | Ident L_PAREN Expressions R_PAREN {printf("Term -> IDENT L_PAREN Expressions R_PAREN\n");}
     ;
 
-Vars: Var {printf("Vars -> Var\n");}
-    | Var COMMA Vars {printf("Vars -> Var COMMA Vars\n");}
+Vars: Var {
+    printf("Vars -> Var\n");
+    $$ = $1->code;
+  }
+    | Var COMMA Vars {
+      printf("Vars -> Var COMMA Vars\n");
+      stringstream ss;
+      ss << $1->code;
+      if ($1->array)
+        ss << ".[]| ";
+      else
+        ss << ".| ";
+      ss << endl;
+      ss << $3->code;
+      $$ = const_cast<char*>(ss.str().c_str());
+    }
     ;
 Var: Ident 
     {
