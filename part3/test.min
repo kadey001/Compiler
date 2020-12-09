@@ -1,4 +1,4 @@
-function sum;
+function main;
 beginparams
 	d,e : integer;
 endparams
@@ -7,13 +7,15 @@ beginlocals
 endlocals
 beginbody
 	
-	x := x + 5;
 
-	if x+5*a == n/c then
+	if a >= 2 then
 		x := x + 1;
-		a := a + x;
+	else
+
+		read i, j;
+		b := b + 2;
+
 	endif;
 
 
-	return x;
 endbody

@@ -241,15 +241,42 @@ Statement:
           $$ = new str_type();
 
     
-          string label = GetNextLabel();
+          string label_t_pred = GetNextLabel();
+          string label_f_pred = GetNextLabel();
           $$->code += $2->code;
-          $$->code += "?=: " + label + ", " + $2->predicate + "\n"; temps.pop();
+          $$->code += "?=: " + label_t_pred + ", " + $2->predicate + "\n"; temps.pop();
+
+          $$->code += ":= " + label_f_pred + "\n";
+
+
+          $$->code += ": " + label_t_pred + "\n";
           $$->code += $4->code;
-          $$->code += ": " + label + "\n";
+          $$->code += ": " + label_f_pred + "\n";
+          
  
       }
 
-    | IF BoolExpr THEN Statements ELSE Statements ENDIF {printf("Statement -> IF BoolExpr THEN Statements ELSE Statements ENDIF\n");}
+    | IF BoolExpr THEN Statements ELSE Statements ENDIF 
+    {
+          $$ = new str_type();
+
+    
+          string label_t_pred = GetNextLabel();
+          string label_f_pred = GetNextLabel();
+          $$->code += $2->code;
+          $$->code += "?=: " + label_t_pred + ", " + $2->predicate + "\n"; temps.pop();
+
+          $$->code += ":= " + label_f_pred + "\n";
+
+
+          $$->code += ": " + label_t_pred + "\n";
+          $$->code += $4->code;
+          $$->code += ": " + label_f_pred + "\n";
+          $$->code += $6->code;
+
+
+    }
+
     | WHILE BoolExpr BEGINLOOP Statements ENDLOOP {printf("Statement -> WHILE BoolExpr Statements ENDLOOP\n");}
     | DO BEGINLOOP Statements ENDLOOP WHILE BoolExpr {printf("Statement -> DO BEGINLOOP Statements ENDLOOP WHILE BoolExpr\n");}
     | FOR Var ASSIGN NUMBER SEMICOLON BoolExpr SEMICOLON Var ASSIGN Expression BEGINLOOP Statements ENDLOOP {printf("FOR Var ASSIGN NUMBER SEMICOLON BoolExpr SEMICOLON Var ASSIGN Expression BEGINLOOP Statements ENDLOOP\n");}
