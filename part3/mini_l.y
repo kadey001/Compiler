@@ -30,15 +30,9 @@
       list<string> ids;
    };
    
-   struct idents_type {
-      list<string> lst;
-   };
 
-   struct stmt_type {
-      string code;
-   };
 
-   struct expr_type {
+   struct str_type {
       string code;
    };
 
@@ -53,9 +47,8 @@
   char* sval;
   int ival;
   dec_type* dec; 
-  idents_type* idents;
-  stmt_type* stmt;
-  expr_type* expr;
+  str_type* str;
+  list<string>* lst;
  }
 
 %error-verbose
@@ -81,22 +74,22 @@
 %left L_SQUARE_BRACKET R_SQUARE_BRACKET
 %left L_PAREN R_PAREN
 
-%type <sval> Program Function Functions Ident Statements Var Term Expressions  
+%type <sval> Program   
 %type <dec> Declarations Declaration 
-%type <idents> Idents
-%type <stmt> Statement 
-%type <expr> Expression MultiplicativeExpr
+%type <lst> Vars Idents
+%type <str> Var Expression Statement MultiplicativeExpr Term Ident Function Functions Statements Expressions
 
 %% /* Grammar Rules */
 
-Program: Functions { cout << $1 << endl;  };
+Program: Functions { cout << $1->code << endl;  };
 
-Functions: /* epsilon */ {  $$ = "";   }
+Functions: /* epsilon */ {  $$ = new str_type();   }
     | Function Functions 
   { 
+     $$ = new str_type();
      stringstream ss;
-     ss << $1 << endl << $2; 
-     $$ = const_cast<char*>(ss.str().c_str());
+     ss << $1->code << endl << $2->code; 
+     $$->code = ss.str();
      
   }
 ;
@@ -104,9 +97,10 @@ Functions: /* epsilon */ {  $$ = "";   }
 
 Function: FUNCTION Ident SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY 
     {
+        $$ = new str_type();
         stringstream ss;
 
-        ss << "func " << $2 << endl;
+        ss << "func " << $2->code << endl;
         ss << $5->code;
 
         int i = 0;
@@ -119,9 +113,9 @@ Function: FUNCTION Ident SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LO
         
 
         ss << $8->code;
-        ss << $11;
+        ss << $11->code;
         ss << "endfunc";
-        $$ = const_cast<char*>(ss.str().c_str());
+        $$->code = ss.str();
 
     };
 
@@ -153,7 +147,7 @@ Declaration: Idents COLON INTEGER
         $$ = new dec_type();
         stringstream ss;
 
-        for (list<string>::iterator it = $1->lst.begin(); it != $1->lst.end(); it++) {
+        for (list<string>::iterator it = $1->begin(); it != $1->end(); it++) {
             ss << ". " << *it << endl;
             $$->ids.push_back( (*it).c_str() );
         }
@@ -166,7 +160,7 @@ Declaration: Idents COLON INTEGER
       $$ = new dec_type();
       stringstream ss;
 
-      for (list<string>::iterator it = $1->lst.begin(); it != $1->lst.end(); it++) {
+      for (list<string>::iterator it = $1->begin(); it != $1->end(); it++) {
           ss << ".[] " << *it << ", " << $5 << endl;
           $$->ids.push_back( (*it).c_str() );
       }
@@ -175,9 +169,7 @@ Declaration: Idents COLON INTEGER
   }
     | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
         {
-          printf("xd");
-          $$ = new dec_type();
-          printf("poop");
+
         }
   ;
 
@@ -186,19 +178,21 @@ Declaration: Idents COLON INTEGER
 
 Idents: Ident 
       {
-        $$ = new idents_type();
-        $$->lst.push_front($1);
+        $$ = new list<string>();
+        $$->push_front($1->code);
       }
     | Ident COMMA Idents 
       {
-        $$ = new idents_type();
-        $$->lst = $3->lst;
-        $$->lst.push_front($1);
+        $$ = $3;
+        $$->push_front($1->code);
       }
     ;
-Ident: IDENT { $$ = $1; };
-
-
+Ident: IDENT
+ {
+    $$ = new str_type();
+    string s($1);
+    $$->code = s;
+}
 
 
 
@@ -208,27 +202,27 @@ Ident: IDENT { $$ = $1; };
 
 Statements: /* epsilon */
        { 
-        cout << "123" << endl;
-           $$ = "";
+          $$ = new str_type();
        }
     | Statement SEMICOLON Statements 
       { 
+          $$ = new str_type();
 
           stringstream ss;
 
-          ss << $1->code  << $3 << endl;
+          ss << $1->code  << $3->code << endl;
 
-          $$ = const_cast<char*>(ss.str().c_str());
+          $$->code = ss.str();
       }
     ;
 Statement: 
 
     Var ASSIGN Expression 
     { 
-       $$ = new stmt_type();
+       $$ = new str_type();
        stringstream ss;
        ss << $3->code;
-       ss << "= " << $1 << ", " << GetCurrentTemp() << endl;
+       ss << "= " << $1->code << ", " << GetCurrentTemp() << endl;
        $$->code = ss.str();
 
     }
@@ -237,41 +231,89 @@ Statement:
     | WHILE BoolExpr BEGINLOOP Statements ENDLOOP {printf("Statement -> WHILE BoolExpr Statements ENDLOOP\n");}
     | DO BEGINLOOP Statements ENDLOOP WHILE BoolExpr {printf("Statement -> DO BEGINLOOP Statements ENDLOOP WHILE BoolExpr\n");}
     | FOR Var ASSIGN NUMBER SEMICOLON BoolExpr SEMICOLON Var ASSIGN Expression BEGINLOOP Statements ENDLOOP {printf("FOR Var ASSIGN NUMBER SEMICOLON BoolExpr SEMICOLON Var ASSIGN Expression BEGINLOOP Statements ENDLOOP\n");}
-    | READ Vars {printf("Statement -> Read Vars\n");}
-    | WRITE Vars {printf("Statement -> WRITE Vars\n");}
-    | CONTINUE {printf("Statement -> CONTINUE\n");}
-    | RETURN Expression {printf("Statement -> RETURN\n");}
+    | READ Vars 
+    {
+      $$ = new str_type();
+      stringstream ss;
+
+      for (auto it = $2->begin(); it != $2->end(); it++) {
+          ss << ".< " << *it << endl;
+      }
+      $$->code = ss.str();
+      cout << $$->code << endl;
+
+    }
+    | WRITE Vars 
+    {
+
+    }
+    | CONTINUE 
+    {
+
+    }
+    | RETURN Expression 
+    {
+
+    }
+    ;
+
+Vars: Var 
+    {
+        $$ = new list<string>();
+        string s ($1->code);
+        $$->push_back(s);
+    }
+    | Var COMMA Vars 
+    {
+        $$ = new list<string>();
+        string s($1->code);
+        $$->push_back(s);
+
+        for (auto it = $3->begin(); it != $3->end(); it++) {
+          $$->push_back(*it);
+        }
+    }
+    ;
+Var: Ident 
+    {
+       $$ = new str_type();
+       string s($1->code);
+       $$->code = s;
+    }
+    | Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
+    | Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
     ;
 
 
 Expressions: /* epsilon */ 
 {
-
-  $$ = "";
+  $$ = new str_type();
 
 }
     | Expression 
     {
-        $$ = const_cast<char*>($1->code.c_str());
+        $$ = new str_type();
+        $$->code = $1->code;
     }
     | Expressions COMMA Expression 
     {
+        $$ = new str_type();
         stringstream ss;
         ss << $1 << "\n" << $3->code << endl;
-        $$ = const_cast<char*>(ss.str().c_str());
+        $$->code = ss.str();
     }
     ;
 
 Expression: MultiplicativeExpr 
     {
-        $$ = new expr_type();
+        $$ = new str_type();
         $$ = $1;
 
     }
     | Expression ADD MultiplicativeExpr 
       {
 
-        $$ = new expr_type();
+        $$ = new str_type();
         stringstream ss;
         string op1;
         string op2;
@@ -312,7 +354,7 @@ Expression: MultiplicativeExpr
       }
     | Expression SUB MultiplicativeExpr 
     {
-        $$ = new expr_type();
+        $$ = new str_type();
         stringstream ss;
         string op1;
         string op2;
@@ -353,12 +395,12 @@ Expression: MultiplicativeExpr
 
 MultiplicativeExpr: Term 
     {
-        $$ = new expr_type();
-        $$->code = $1;
+        $$ = new str_type();
+        $$->code = $1->code;
     }
     | MultiplicativeExpr MULT Term 
       {
-        $$ = new expr_type();
+        $$ = new str_type();
         stringstream ss;
         string op1;
         string op2;
@@ -377,14 +419,14 @@ MultiplicativeExpr: Term
           ss << $1->code;
         }
 
-        if ( string($3).find("\n") == string::npos ) {
+        if ( string($3->code).find("\n") == string::npos ) {
           op2 = GetNextTemp();
           ss << ". " << op2 << endl;
-          ss << "= " << op2 << ", " << $3 << endl;
+          ss << "= " << op2 << ", " << $3->code << endl;
         }
         else {
            op2 = temps.top(); temps.pop();
-           ss << $3;
+           ss << $3->code;
         }
 
         op3 = GetNextTemp();
@@ -397,7 +439,7 @@ MultiplicativeExpr: Term
       }
     | MultiplicativeExpr DIV Term 
       {
-        $$ = new expr_type();
+        $$ = new str_type();
         stringstream ss;
         string op1;
         string op2;
@@ -416,14 +458,14 @@ MultiplicativeExpr: Term
           ss << $1->code;
         }
 
-        if ( string($3).find("\n") == string::npos ) {
+        if ( string($3->code).find("\n") == string::npos ) {
           op2 = GetNextTemp();
           ss << ". " << op2 << endl;
-          ss << "= " << op2 << ", " << $3 << endl;
+          ss << "= " << op2 << ", " << $3->code << endl;
         }
         else {
            op2 = temps.top(); temps.pop();
-           ss << $3;
+           ss << $3->code;
         }
 
         op3 = GetNextTemp();
@@ -434,7 +476,7 @@ MultiplicativeExpr: Term
       }
     | MultiplicativeExpr MOD Term 
       {
-        $$ = new expr_type();
+        $$ = new str_type();
         stringstream ss;
         string op1;
         string op2;
@@ -453,14 +495,14 @@ MultiplicativeExpr: Term
           ss << $1->code;
         }
 
-        if ( string($3).find("\n") == string::npos ) {
+        if ( string($3->code).find("\n") == string::npos ) {
           op2 = GetNextTemp();
           ss << ". " << op2 << endl;
-          ss << "= " << op2 << ", " << $3 << endl;
+          ss << "= " << op2 << ", " << $3->code << endl;
         }
         else {
            op2 = temps.top(); temps.pop();
-           ss << $3;
+           ss << $3->code;
         }
 
         op3 = GetNextTemp();
@@ -473,11 +515,13 @@ MultiplicativeExpr: Term
 
 Term: Var 
     {
-      $$ = $1;
+      $$ = new str_type();
+      $$->code = $1->code;
     }
     | NUMBER 
     {
-      $$ = $1;
+      $$ = new str_type();
+      $$->code = $1;
     }
     | L_PAREN Expression R_PAREN {printf("Term -> L_PAREN Expression R_PAREN\n");}
         | SUB Var {printf("Term -> SUB Var\n");}
@@ -486,16 +530,7 @@ Term: Var
     | Ident L_PAREN Expressions R_PAREN {printf("Term -> IDENT L_PAREN Expressions R_PAREN\n");}
     ;
 
-Vars: Var {printf("Vars -> Var\n");}
-    | Var COMMA Vars {printf("Vars -> Var COMMA Vars\n");}
-    ;
-Var: Ident 
-    {
-       $$ = $1;
-    }
-    | Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
-    | Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET {printf("Var -> IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");}
-    ;
+
 
 
 Comparison: EQ {printf("Comparison -> EQ\n");}

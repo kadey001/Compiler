@@ -6,5 +6,5 @@ beginlocals
 	a,b,c,g,x,n : integer;
 endlocals
 beginbody
-	x := a % b - c * g / x % 2 % a;
+	x := x + 1 + 2 + y + a * c;
 endbody

@@ -62,15 +62,9 @@ extern int yydebug;
       list<string> ids;
    };
    
-   struct idents_type {
-      list<string> lst;
-   };
 
-   struct stmt_type {
-      string code;
-   };
 
-   struct expr_type {
+   struct str_type {
       string code;
    };
 
@@ -79,7 +73,7 @@ extern int yydebug;
 
 
 
-#line 83 "y.tab.h" /* yacc.c:1909  */
+#line 77 "y.tab.h" /* yacc.c:1909  */
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -144,17 +138,16 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 52 "mini_l.y" /* yacc.c:1909  */
+#line 46 "mini_l.y" /* yacc.c:1909  */
 
   char* sval;
   int ival;
   dec_type* dec; 
-  idents_type* idents;
-  stmt_type* stmt;
-  expr_type* expr;
+  str_type* str;
+  list<string>* lst;
  
 
-#line 158 "y.tab.h" /* yacc.c:1909  */
+#line 151 "y.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
