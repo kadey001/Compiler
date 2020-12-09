@@ -6,5 +6,14 @@ beginlocals
 	a,b,c,g,x,n : integer;
 endlocals
 beginbody
-	x := x + 1 + 2 + y + a * c;
+	
+	x := x + 5;
+
+	if x+5*a == n/c then
+		x := x + 1;
+		a := a + x;
+	endif;
+
+
+	return x;
 endbody

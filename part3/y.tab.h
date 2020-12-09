@@ -40,7 +40,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 12 "mini_l.y" /* yacc.c:1909  */
+#line 14 "mini_l.y" /* yacc.c:1909  */
 
    #include <string>
    #include <list>
@@ -68,12 +68,18 @@ extern int yydebug;
       string code;
    };
 
+   struct bool_type {
+      string code;
+      string predicate;
+      bool b;
+   };
 
 
 
 
 
-#line 77 "y.tab.h" /* yacc.c:1909  */
+
+#line 83 "y.tab.h" /* yacc.c:1909  */
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -138,16 +144,17 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 46 "mini_l.y" /* yacc.c:1909  */
+#line 54 "mini_l.y" /* yacc.c:1909  */
 
   char* sval;
   int ival;
   dec_type* dec; 
   str_type* str;
+  bool_type* boo;
   list<string>* lst;
  
 
-#line 151 "y.tab.h" /* yacc.c:1909  */
+#line 158 "y.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
