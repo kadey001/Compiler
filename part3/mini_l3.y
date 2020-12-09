@@ -75,48 +75,6 @@
   using namespace std;
 }
 
-/*%code requires{
-  #include <string>
-  #include <list>
-  #include <iostream>
-  #include <stdio.h>
-  #include <stdlib.h>
-  #include <string.h>
-  #include <sstream>
-  void yyerror(string msg);
-  void yyerror(const char* msg);
-  int yylex();
-  extern int currPos;
-  extern int currLine;
-  using namespace std;
-
-  struct dec_type {
-    string code;
-    list<string> ids;
-  };
-  
-  struct idents_type {
-    list<string> lst;
-    bool array;
-    list<string> expressions;
-  };
-
-  struct attribute_type {
-    string name;
-    string index;
-    string type; 
-    int val;
-    int size_attr;
-  };
-
-  void ReadBuffer();
-  string GetNextTemp();
-  string GetCurrentTemp();
-  string GetLabel();
-  string GetParam();
-  bool ValidateSymbol(string symbol);
-}*/
-
 %union{
   char* sval;
   int ival;
@@ -129,12 +87,12 @@
     string type; 
     int val;
     int size_attr;
-  } attr;
+  };
 }
 
 %error-verbose
 %debug
-%start Start
+%start Program
 
 %token	FUNCTION BEGIN_PARAMS END_PARAMS BEGIN_LOCALS END_LOCALS BEGIN_BODY
 %token INTEGER ARRAY OF IF THEN ENDIF ELSE WHILE FOR DO BEGINLOOP ENDLOOP END_BODY
@@ -159,19 +117,25 @@
 // %type <dec> Declarations Declaration 
 // %type <idents> Idents Vars Ident Var
 
-%type <attr> Function Statement Statements Term Expressions Expression MultiplicativeExpr Declarations Declaration Idents Vars Ident Var BoolExpr
+%type <*attribute_type> Function Statement Statements Term Expressions Expression MultiplicativeExpr RelationExpr RelExpr RelationAndExpr Declarations Declaration Idents Vars Ident Var BoolExpr
+%type <sval> Comparison
 
 %% /* Grammar Rules */
 
-Start: Program { if(!main_exists){yyerror("error: main not declared");} };
+Program: Functions;
 
-Program: /* epsilon */
-  | Function Program
-  ;
+Functions: /* epsilon */
+  | Function Functions;
 
 Function: FUNCTION IDENT {
   buffer << "FUNCTION " << string($2) << endl;
-} SEMICOLON BEGIN_PARAMS Declarations END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY 
+} SEMICOLON BEGIN_PARAMS Declarations {
+  while (!param_stack.empty()) {
+    buffer << "= " << param_stack.top() << ", $" << param_counter << endl;
+    param_counter += 1;
+    param_stack.pop(); 
+  }
+} END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statement SEMICOLON Statements END_BODY 
   {
     output << "END FUNCTION" << string($2) << endl;
     // Clear symbol table and param stack
@@ -295,39 +259,166 @@ Var: IDENT
     } else {
       if
     }
-  //   $$ = new idents_type();
-  //   $$->array = true;
-  //   $$->lst.push_front($1);
-  //   $$->expressions.push_front($3);
   }
   | IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET 
   {
     // TODO Add ident to map/list/set
     printf("Var -> Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");
-    // $$ = new idents_type();
-    // $$->array = true;
-    // $$->lst.push_front($1);
-    // $$->expressions.push_front($3);
-    // $$->expressions.push_front($6);
   }
   ;
 
 Term: Var 
   {
-    $$ = $1;
+    $$->val = $1->val;
+    $$->type = $1->type;
+    if ($1->type == "ARRAY") {
+      string temp = GetNextTemp();
+      strcpy($$.name, temp);
+      string name = $$->name;
+      strcpy($$.index, $$.name);
+      string name1 = $$->name;
+      string name2 = $1->name;
+      string index = $1->index;
+      buffer << ". " << name1 << endl;
+      buffer << "= " << name1 << ", " << name2 << ", " << index << endl;
+    } else {
+      string temp = GetNextTemp();
+      strcpy($$.name, temp);
+      string name = $$->name;
+      strcpy($$.index, $$.name);
+      string name1 = $$->name;
+      string name2 = $1->name;
+      buffer << ". " << name1 << endl;
+      buffer << "= " << name1 << ", " << name2 << endl;
+    }
   }
   | NUMBER 
   {
-    $$ = $1;
+    $$->val = $1;
+    $$->type = "INTEGER";
+    string temp = GetNextTemp();
+    strcpy($$.name, temp);
+    strcpy($$.index, $$.name);
+    string name = $$->name;
+    buffer << ". " << name << endl;
+    buffer << "= " << name << ", " << $$->val << endl;
   }
-  | L_PAREN Expression R_PAREN {printf("Term -> L_PAREN Expression R_PAREN\n");}
-      | SUB Var {printf("Term -> SUB Var\n");}
-      | SUB NUMBER {printf("Term -> SUB NUMBER\n");}
-      | SUB L_PAREN Expression R_PAREN {printf("Term -> SUB L_PAREN Expression R_PAREN\n");}
-  | IDENT L_PAREN Expressions R_PAREN {printf("Term -> IDENT L_PAREN Expressions R_PAREN\n");}
+  | L_PAREN Expression R_PAREN {
+    // printf("Term -> L_PAREN Expression R_PAREN\n");
+    strcpy($$.name, $2.name);
+  }
+      | SUB Var {
+        // printf("Term -> SUB Var\n");
+        $$->val = ($2->val * -1);
+        $$->type = $2->type;
+        
+        if ($2->type == "ARRAY") {
+          string temp1 = GetNextTemp();
+          string temp2 = GetNextTemp();
+
+          string s1 = ". " + temp1 + "\n" + "= " + temp1 + ", 0";
+          buffer << s1 << endl;
+          string s2 = ". " + temp2 + "\n" + ". " << temp2;
+          buffer << s2 << endl;
+          string s3 = "=[] " + temp2 + ", " + $2->name + ", " + $2->index;
+          buffer << s3 << endl;
+
+          string temp3 = GetNextTemp();
+          strcpy($$.name, temp3);
+
+          string s4 = ". " + $$->name;
+          buffer << s4 << endl;
+          string s5 = "- " + $$->name + ", " + temp1 + ", " + temp2;
+          buffer << s5 << endl;
+        } else {
+          string temp1 = GetNextTemp();
+          string temp2 = GetNextTemp();
+
+          string s1 = ". " + temp1 + "\n" + "= " + temp1 + ", 0";
+          buffer << s1 << endl;
+          string s2 = ". " + temp2;
+          buffer << s2 << endl;
+          string s3 = "= " + temp2 + ", " + $2->name;
+          buffer << s3 << endl;
+
+          string temp3 = GetNextTemp();
+          strcpy($$.name, temp3);
+
+          string s4 = ". " + $$->name;
+          buffer << s4 << endl;
+          string s5 = "- " + $$->name + ", " + temp1 + ", " + temp2;
+          buffer << s5 << endl;
+        }
+      }
+      | SUB NUMBER {
+        // printf("Term -> SUB NUMBER\n");
+        $$->val = ($2 * -1);
+        $$-type = "INTEGER";
+
+        string temp1 = GetNextTemp();
+        string temp2 = GetNextTemp();
+
+        string s1 = ". " + temp1 + "\n" + "= " + temp1 + ", 0";
+        buffer << s1 << endl;
+        string s2 = ". " + temp2;
+        buffer << s2 << endl;
+        string s3 = "= " + temp2 + ", " + $2;
+        buffer << s3 << endl;
+
+        string temp3 = GetNextTemp();
+        strcpy($$.name, temp3);
+
+        string s4 = ". " + $$->name;
+        buffer << s4 << endl;
+        string s5 = "- " + $$->name + ", " + temp1 + ", " + temp2;
+        buffer << s5 << endl;
+      }
+      | SUB L_PAREN Expression R_PAREN {
+        // printf("Term -> SUB L_PAREN Expression R_PAREN\n");
+        string temp1 = GetNextTemp();
+        buffer << ". " << temp1 <<endl;
+        buffer << "= " << ", " << temp1 << ", 0" << endl;
+
+        string temp2 = GetNextTemp();
+        strcpy($$.name, temp2);
+
+        string s4 = ". " + $$->name;
+        buffer << s4 << endl;
+        string s5 = "- " + $$->name + ", " + temp1 + ", " + $3->name;
+        buffer << s5 << endl;
+      }
+  | IDENT L_PAREN Expressions R_PAREN {
+    // printf("Term -> IDENT L_PAREN Expressions R_PAREN\n");
+    if(function_table.find($1) == function_table.end()) {
+      string err = "Function: " + $1 + " not declared: ";
+      yyerror(err);
+    }
+    expression_stack.push($3->name);
+
+    while (!expression_stack.empty()) {
+      buffer << "Param " << expression_stack.top() << endl;
+      expression_stack.pop();
+    }
+
+    string temp = GetNextTemp();
+    buffer << ". " << temp << endl;
+    buffer << "Call " << $1 << ", " << temp << endl;
+  }
+  | IDENT L_PAREN R_PAREN {
+    if(function_table.find($1) == function_table.end()) {
+      string err = "Function: " + $1 + " not declared: ";
+      yyerror(err);
+    }
+    
+    string temp = GetNextTemp();
+    buffer << ". " << temp << endl;
+    buffer << "Call " << $1 << ", " << temp << endl;
+    strcpy($$.name, temp);
+  }
   ;
 
-Statements: Statement SEMICOLON Statements;
+Statements: /* epsilon */ 
+  | Statement SEMICOLON Statements;
 Statement: 
     Var ASSIGN Expression 
     { 
@@ -463,236 +554,134 @@ Else: /* epsilon */
   ;
 
 Expressions: /* epsilon */ 
-{
-  $$ = "";
-}
     | Expression 
-    {
-        $$ = $1;
-    }
-    | Expressions COMMA Expression 
-    {
-        stringstream ss;
-        ss << $1 << "\n" << $3 << endl;
-        $$ = const_cast<char*>(ss.str().c_str());
-    }
+    | Expressions COMMA Expression
     ;
 Expression: MultiplicativeExpr 
     {
-        $$ = $1;
-
+      strcpy($$.name, $1.name);
+      $$->type = $1->type;
     }
     | Expression ADD MultiplicativeExpr 
-      {
-        stringstream ss;
-        string op1;
-        string op2;
-        string op3;
-
-        if (  (string($1).find("\n") == string::npos) ) {
-          op1 = GetNextTemp();
-          ss << ". " << op1 << endl;
-          ss << "= " << op1 << ", " << $1 << endl;
-
-        }
-        else {
-          op1 = temp_stack.top(); temp_stack.pop();
-          ss << $1;
-
-        }
-
-
-        if ( string($3).find("\n") == string::npos ) {
-          op2 = GetNextTemp();
-          ss << ". " << op2 << endl;
-          ss << "= " << op2 << ", " << $3 << endl;
-
-        }
-        else {
-          op2 = temp_stack.top(); temp_stack.pop();
-          ss << $3;
-
-        }
-        op3 = GetNextTemp();
-        ss << ". " << op3 << endl;
-        ss << "+, " << op3 << ", " << op1 << ", " << op2 << endl;
-        temp_stack.push(op3);
-        $$ = const_cast<char*>(ss.str().c_str());
-      }
+    {
+      string temp = GetNextTemp();
+      strcpy($$.name, temp);
+      buffer << ". " << temp << endl;
+      buffer << "+ " << temp << $1->name << ", " << $3->name << endl;
+    }
     | Expression SUB MultiplicativeExpr 
     {
-        stringstream ss;
-        string op1;
-        string op2;
-        string op3;
-
-        if (  (string($1).find("\n") == string::npos) ) {
-          op1 = GetNextTemp();
-          ss << ". " << op1 << endl;
-          ss << "= " << op1 << ", " << $1 << endl;
-
-        }
-        else {
-          op1 = temp_stack.top(); temp_stack.pop();
-          ss << $1;
-
-        }
-
-
-        if ( string($3).find("\n") == string::npos ) {
-          op2 = GetNextTemp();
-          ss << ". " << op2 << endl;
-          ss << "= " << op2 << ", " << $3 << endl;
-
-        }
-        else {
-          op2 = temp_stack.top(); temp_stack.pop();
-          ss << $3;
-
-        }
-
-        op3 = GetNextTemp();
-        ss << ". " << op3 << endl;
-        ss << "-, " << op3 << ", " << op1 << ", " << op2 << endl;
-        temp_stack.push(op3);
-        $$ = const_cast<char*>(ss.str().c_str());
+      string temp = GetNextTemp();
+        strcpy($$.name, temp);
+        buffer << ". " << temp << endl;
+        buffer << "- " << temp << $1->name << ", " << $3->name << endl;
     };
 
 MultiplicativeExpr: Term 
   {
-    $$ = $1;
+    strcpy($$.name, $1.name);
+    $$->type = $1->type;
   }
-  | MultiplicativeExpr MULT Term 
-    {
-      stringstream ss;
-      string op1;
-      string op2;
-      string op3;
+  | MultiplicativeExpr MULT Term {
+    string temp = GetNextTemp();
+    buffer << ". " << temp << endl;
+    string s1 = $1->name;
+    string s3 = $3->name;
+    buffer << "* " << temp << ", " << s1 << ", " << s3 << endl;
+    strcpy($$.name, temp);
+  }
+  | MultiplicativeExpr DIV Term {
+    string temp = GetNextTemp();
+    buffer << ". " << temp << endl;
+    string s1 = $1->name;
+    string s3 = $3->name;
+    buffer << "/ " << temp << ", " << s1 << ", " << s3 << endl;
+    strcpy($$.name, temp);
+  }
+  | MultiplicativeExpr MOD Term {
+    string temp = GetNextTemp();
+    buffer << ". " << temp << endl;
+    string s1 = $1->name;
+    string s3 = $3->name;
+    buffer << "% " << temp << ", " << s1 << ", " << s3 << endl;
+    strcpy($$.name, temp);
+  };
 
-      if ( string($1).find("\n") == string::npos ) {
+Comparison: EQ { $$ = "=="; }
+    | NEQ { $$ = "!="; }
+    | LT { $$ = "<"; }
+    | GT { $$ = ">"; }
+    | LTE { $$ = "<="; }
+    | GTE { $$ = ">="; }
+    ;
 
-        op1 = GetNextTemp();
-        ss << ". " << op1 << endl;
-        ss << "= " << op1 << ", " << $1 << endl;
-      }
+BoolExpr: RelationAndExpr {
+    printf("BoolExpr -> RelationAndExpr\n");
+    variable_stack.push($1->name);
+  } 
+  | RelationAndExpr OR BoolExpr {
+    printf("BoolExpr -> RelationAndExpr OR RelationAndExpr\n");
+    string temp = GetNextTemp();
+    strcpy($$.name, temp);
+    buffer << ". " << temp << endl;
+    string s1 = $1->name;
+    string s3 = $3->name;
+    buffer << "|| " << temp << ", " << s1 << ", " << s3 << endl;
+  }
+  ;
 
-      else {
-        op1 = temp_stack.top(); temp_stack.pop();
-        ss << $1;
-      }
+RelationAndExpr: RelationExpr {
+    printf("RelationAndExpr -> RelationExpr\n");
+    strcpy($$.name, $1.name);
+  }
+  | RelationExpr AND RelationAndExpr {
+    printf("RelationAndExpr -> RelationExpr AND RelationAndExpr\n");
+    string temp = GetNextTemp();
+    strcpy($$.name, temp);
+    buffer << ". " << temp << endl;
+    string s1 = $1->name;
+    string s3 = $3->name;
+    buffer << "&& " << temp << ", " << s1 << ", " << s3 << endl;
+  }
+  ;
 
-      if ( string($3).find("\n") == string::npos ) {
-        op2 = GetNextTemp();
-        ss << ". " << op2 << endl;
-        ss << "= " << op2 << ", " << $3 << endl;
-      }
-      else {
-          op2 = temp_stack.top(); temp_stack.pop();
-        ss << $3;
-      }
+RelationExpr: RelExpr {
+    strcpy($$.name, $1.name);
+  }
+  | NOT RelExpr {
+    string temp = GetNextTemp();
+    strcpy($$.name, temp);
+    buffer << "! " << temp << $2->name << endl;
+  }
 
-      op3 = GetNextTemp();
-      ss << ". " << op3 << endl;
-      ss << "*, " << op3 << ", " << op1 << ", " << op2 << endl;
-      temp_stack.push(op3);
-      $$ = const_cast<char*>(ss.str().c_str());
+RelExpr: Expression Comparison Expression {
+    // printf("RelationExpr -> Expression Comp Expression\n");
+    string temp = GetNextTemp();
+    strcpy($$.name, temp);
+    buffer << ". " << temp << endl;
+    string s1 = $1->name;
+    string s3 = $3->name;
+    buffer << $2 << " " << temp << ", " << s1 << ", " << s3 << endl; 
+  }
+    | TRUE {
+      // printf("RelationExpr -> TRUE\n");
+      string temp = GetNextTemp();
+      strcpy($$.name, temp);
+      buffer << ". " << temp << endl;
+      buffer << "= " << temp << ", True" << endl; 
     }
-  | MultiplicativeExpr DIV Term 
-    {
-      stringstream ss;
-      string op1;
-      string op2;
-      string op3;
-
-      if ( string($1).find("\n") == string::npos ) {
-
-        op1 = GetNextTemp();
-        ss << ". " << op1 << endl;
-        ss << "= " << op1 << ", " << $1 << endl;
-      }
-
-      else {
-        op1 = temp_stack.top(); temp_stack.pop();
-        ss << $1;
-      }
-
-      if ( string($3).find("\n") == string::npos ) {
-        op2 = GetNextTemp();
-        ss << ". " << op2 << endl;
-        ss << "= " << op2 << ", " << $3 << endl;
-      }
-      else {
-          op2 = temp_stack.top(); temp_stack.pop();
-        ss << $3;
-      }
-
-      op3 = GetNextTemp();
-      ss << ". " << op3 << endl;
-      ss << "/, " << op3 << ", " << op1 << ", " << op2 << endl;
-      temp_stack.push(op3);
-      $$ = const_cast<char*>(ss.str().c_str());
+    | FALSE {
+      // printf("RelationExpr -> FALSE\n");
+      string temp = GetNextTemp();
+      strcpy($$.name, temp);
+      buffer << ". " << temp << endl;
+      buffer << "= " << temp << ", False" << endl; 
     }
-  | MultiplicativeExpr MOD Term 
-    {
-      stringstream ss;
-      string op1;
-      string op2;
-      string op3;
-
-      if ( string($1).find("\n") == string::npos ) {
-
-        op1 = GetNextTemp();
-        ss << ". " << op1 << endl;
-        ss << "= " << op1 << ", " << $1 << endl;
-      }
-
-      else {
-        op1 = temp_stack.top(); temp_stack.pop();
-        ss << $1;
-      }
-
-      if ( string($3).find("\n") == string::npos ) {
-        op2 = GetNextTemp();
-        ss << ". " << op2 << endl;
-        ss << "= " << op2 << ", " << $3 << endl;
-      }
-      else {
-          op2 = temp_stack.top(); temp_stack.pop();
-        ss << $3;
-      }
-
-      op3 = GetNextTemp();
-      ss << ". " << op3 << endl;
-      ss << "%, " << op3 << ", " << op1 << ", " << op2 << endl;
-      temp_stack.push(op3);
-      $$ = const_cast<char*>(ss.str().c_str());
-    };
-
-Comparison: EQ {printf("Comparison -> EQ\n");}
-    | NEQ {printf("Comparison -> NEQ\n");}
-    | LT {printf("Comparison -> LT\n");}
-    | GT {printf("Comparison -> GT\n");}
-    | LTE {printf("Comparison -> LTE\n");}
-    | GTE {printf("Comparison -> GTE\n");}
+    | L_PAREN BoolExpr R_PAREN {
+      // printf("RelationExpr -> L_PAREN BoolExpr R_PAREN\n");
+      strcpy($$.name, $2.name);
+    }
     ;
-
-BoolExpr: RelationAndExpr {printf("BoolExpr -> RelationAndExpr\n");} 
-    | RelationAndExpr OR BoolExpr {printf("BoolExpr -> RelationAndExpr OR RelationAndExpr\n");}
-    ;
-
-RelationAndExpr: RelationExpr {printf("RelationAndExpr -> RelationExpr\n");}
-    | RelationExpr AND RelationAndExpr {printf("RelationAndExpr -> RelationExpr AND RelationAndExpr\n");}
-    ;
-
-RelationExpr: Expression Comparison Expression {printf("RelationExpr -> Expression Comp Expression\n");}
-    | TRUE {printf("RelationExpr -> TRUE\n");}
-    | FALSE {printf("RelationExpr -> FALSE\n");}
-    | L_PAREN BoolExpr R_PAREN {printf("RelationExpr -> L_PAREN BoolExpr R_PAREN\n");}
-        | NOT Expression Comparison Expression {printf("RelationExpr -> NOT Expression Comp Expression\n");}
-        | NOT TRUE {printf("RelationExpr -> NOT TRUE\n");}
-        | NOT FALSE {printf("RelationExpr -> NOT FALSE\n");}
-        | NOT L_PAREN BoolExpr R_PAREN {printf("RelationExpr -> NOT L_PAREN BoolExpr R_PAREN\n");}
-        ;
 
 %%
 // Additional C Code
