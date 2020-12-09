@@ -40,7 +40,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 9 "mini_l.y" /* yacc.c:1909  */
+#line 12 "mini_l.y" /* yacc.c:1909  */
 
    #include <string>
    #include <list>
@@ -66,13 +66,20 @@ extern int yydebug;
       list<string> lst;
    };
 
-   string GetNextTemp();
-   string GetCurrentTemp();
+   struct stmt_type {
+      string code;
+   };
+
+   struct expr_type {
+      string code;
+   };
 
 
 
 
-#line 76 "y.tab.h" /* yacc.c:1909  */
+
+
+#line 83 "y.tab.h" /* yacc.c:1909  */
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -137,15 +144,17 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 42 "mini_l.y" /* yacc.c:1909  */
+#line 52 "mini_l.y" /* yacc.c:1909  */
 
   char* sval;
   int ival;
   dec_type* dec; 
   idents_type* idents;
+  stmt_type* stmt;
+  expr_type* expr;
  
 
-#line 149 "y.tab.h" /* yacc.c:1909  */
+#line 158 "y.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;

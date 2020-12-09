@@ -4,7 +4,10 @@
    using namespace std;
    stack<string> temps;
    int temp_counter = 0;
+   string GetNextTemp();
+   string GetCurrentTemp();
 %}
+
 
 %code requires{
    #include <string>
@@ -31,8 +34,15 @@
       list<string> lst;
    };
 
-   string GetNextTemp();
-   string GetCurrentTemp();
+   struct stmt_type {
+      string code;
+   };
+
+   struct expr_type {
+      string code;
+   };
+
+
 
 
 
@@ -44,6 +54,8 @@
   int ival;
   dec_type* dec; 
   idents_type* idents;
+  stmt_type* stmt;
+  expr_type* expr;
  }
 
 %error-verbose
@@ -69,9 +81,11 @@
 %left L_SQUARE_BRACKET R_SQUARE_BRACKET
 %left L_PAREN R_PAREN
 
-%type <sval> Program Function Functions Ident Statement Statements Var Term Expressions Expression  MultiplicativeExpr 
+%type <sval> Program Function Functions Ident Statements Var Term Expressions  
 %type <dec> Declarations Declaration 
 %type <idents> Idents
+%type <stmt> Statement 
+%type <expr> Expression MultiplicativeExpr
 
 %% /* Grammar Rules */
 
@@ -194,23 +208,29 @@ Ident: IDENT { $$ = $1; };
 
 Statements: /* epsilon */
        { 
+        cout << "123" << endl;
            $$ = "";
        }
     | Statement SEMICOLON Statements 
       { 
+
           stringstream ss;
-          ss << $1 << endl << $3 << endl;
+
+          ss << $1->code  << $3 << endl;
+
           $$ = const_cast<char*>(ss.str().c_str());
       }
     ;
 Statement: 
+
     Var ASSIGN Expression 
     { 
+       $$ = new stmt_type();
        stringstream ss;
-       ss << $3;
+       ss << $3->code;
        ss << "= " << $1 << ", " << GetCurrentTemp() << endl;
-      
-       $$ = const_cast<char*>(ss.str().c_str());
+       $$->code = ss.str();
+
     }
     | IF BoolExpr THEN Statements ENDIF {printf("Statement -> IF BoolExpr THEN Statements ENDIF\n");}
     | IF BoolExpr THEN Statements ELSE Statements ENDIF {printf("Statement -> IF BoolExpr THEN Statements ELSE Statements ENDIF\n");}
@@ -232,49 +252,53 @@ Expressions: /* epsilon */
 }
     | Expression 
     {
-        $$ = $1;
+        $$ = const_cast<char*>($1->code.c_str());
     }
     | Expressions COMMA Expression 
     {
         stringstream ss;
-        ss << $1 << "\n" << $3 << endl;
+        ss << $1 << "\n" << $3->code << endl;
         $$ = const_cast<char*>(ss.str().c_str());
     }
     ;
+
 Expression: MultiplicativeExpr 
     {
+        $$ = new expr_type();
         $$ = $1;
 
     }
     | Expression ADD MultiplicativeExpr 
       {
+
+        $$ = new expr_type();
         stringstream ss;
         string op1;
         string op2;
         string op3;
 
-        if (  (string($1).find("\n") == string::npos) ) {
+        if (  (string($1->code).find("\n") == string::npos) ) {
           op1 = GetNextTemp();
           ss << ". " << op1 << endl;
-          ss << "= " << op1 << ", " << $1 << endl;
+          ss << "= " << op1 << ", " << $1->code << endl;
 
         }
         else {
           op1 = temps.top(); temps.pop();
-          ss << $1;
+          ss << $1->code;
 
         }
 
 
-        if ( string($3).find("\n") == string::npos ) {
+        if ( string($3->code).find("\n") == string::npos ) {
           op2 = GetNextTemp();
           ss << ". " << op2 << endl;
-          ss << "= " << op2 << ", " << $3 << endl;
+          ss << "= " << op2 << ", " << $3->code << endl;
 
         }
         else {
           op2 = temps.top(); temps.pop();
-          ss << $3;
+          ss << $3->code;
 
         }
 
@@ -282,40 +306,40 @@ Expression: MultiplicativeExpr
         ss << ". " << op3 << endl;
         ss << "+, " << op3 << ", " << op1 << ", " << op2 << endl;
         temps.push(op3);
-        $$ = const_cast<char*>(ss.str().c_str());
+        $$->code = ss.str();
 
 
       }
     | Expression SUB MultiplicativeExpr 
     {
-
+        $$ = new expr_type();
         stringstream ss;
         string op1;
         string op2;
         string op3;
 
-        if (  (string($1).find("\n") == string::npos) ) {
+        if (  (string($1->code).find("\n") == string::npos) ) {
           op1 = GetNextTemp();
           ss << ". " << op1 << endl;
-          ss << "= " << op1 << ", " << $1 << endl;
+          ss << "= " << op1 << ", " << $1->code << endl;
 
         }
         else {
           op1 = temps.top(); temps.pop();
-          ss << $1;
+          ss << $1->code;
 
         }
 
 
-        if ( string($3).find("\n") == string::npos ) {
+        if ( string($3->code).find("\n") == string::npos ) {
           op2 = GetNextTemp();
           ss << ". " << op2 << endl;
-          ss << "= " << op2 << ", " << $3 << endl;
+          ss << "= " << op2 << ", " << $3->code << endl;
 
         }
         else {
           op2 = temps.top(); temps.pop();
-          ss << $3;
+          ss << $3->code;
 
         }
 
@@ -323,32 +347,34 @@ Expression: MultiplicativeExpr
         ss << ". " << op3 << endl;
         ss << "-, " << op3 << ", " << op1 << ", " << op2 << endl;
         temps.push(op3);
-        $$ = const_cast<char*>(ss.str().c_str());
+        $$->code = ss.str();
     }
     ;
 
 MultiplicativeExpr: Term 
     {
-        $$ = $1;
+        $$ = new expr_type();
+        $$->code = $1;
     }
     | MultiplicativeExpr MULT Term 
       {
+        $$ = new expr_type();
         stringstream ss;
         string op1;
         string op2;
         string op3;
 
 
-        if ( string($1).find("\n") == string::npos ) {
+        if ( string($1->code).find("\n") == string::npos ) {
 
           op1 = GetNextTemp();
           ss << ". " << op1 << endl;
-          ss << "= " << op1 << ", " << $1 << endl;
+          ss << "= " << op1 << ", " << $1->code << endl;
         }
 
         else {
           op1 = temps.top(); temps.pop();
-          ss << $1;
+          ss << $1->code;
         }
 
         if ( string($3).find("\n") == string::npos ) {
@@ -358,35 +384,36 @@ MultiplicativeExpr: Term
         }
         else {
            op2 = temps.top(); temps.pop();
-          ss << $3;
+           ss << $3;
         }
 
         op3 = GetNextTemp();
         ss << ". " << op3 << endl;
         ss << "*, " << op3 << ", " << op1 << ", " << op2 << endl;
         temps.push(op3);
-        $$ = const_cast<char*>(ss.str().c_str());
+        $$->code = ss.str();
 
 
       }
     | MultiplicativeExpr DIV Term 
       {
+        $$ = new expr_type();
         stringstream ss;
         string op1;
         string op2;
         string op3;
 
 
-        if ( string($1).find("\n") == string::npos ) {
+        if ( string($1->code).find("\n") == string::npos ) {
 
           op1 = GetNextTemp();
           ss << ". " << op1 << endl;
-          ss << "= " << op1 << ", " << $1 << endl;
+          ss << "= " << op1 << ", " << $1->code << endl;
         }
 
         else {
           op1 = temps.top(); temps.pop();
-          ss << $1;
+          ss << $1->code;
         }
 
         if ( string($3).find("\n") == string::npos ) {
@@ -396,33 +423,34 @@ MultiplicativeExpr: Term
         }
         else {
            op2 = temps.top(); temps.pop();
-          ss << $3;
+           ss << $3;
         }
 
         op3 = GetNextTemp();
         ss << ". " << op3 << endl;
         ss << "/, " << op3 << ", " << op1 << ", " << op2 << endl;
         temps.push(op3);
-        $$ = const_cast<char*>(ss.str().c_str());
+        $$->code = ss.str();
       }
     | MultiplicativeExpr MOD Term 
       {
+        $$ = new expr_type();
         stringstream ss;
         string op1;
         string op2;
         string op3;
 
 
-        if ( string($1).find("\n") == string::npos ) {
+        if ( string($1->code).find("\n") == string::npos ) {
 
           op1 = GetNextTemp();
           ss << ". " << op1 << endl;
-          ss << "= " << op1 << ", " << $1 << endl;
+          ss << "= " << op1 << ", " << $1->code << endl;
         }
 
         else {
           op1 = temps.top(); temps.pop();
-          ss << $1;
+          ss << $1->code;
         }
 
         if ( string($3).find("\n") == string::npos ) {
@@ -432,14 +460,14 @@ MultiplicativeExpr: Term
         }
         else {
            op2 = temps.top(); temps.pop();
-          ss << $3;
+           ss << $3;
         }
 
         op3 = GetNextTemp();
         ss << ". " << op3 << endl;
         ss << "%, " << op3 << ", " << op1 << ", " << op2 << endl;
         temps.push(op3);
-        $$ = const_cast<char*>(ss.str().c_str());
+        $$->code = ss.str();
       }
     ;
 
