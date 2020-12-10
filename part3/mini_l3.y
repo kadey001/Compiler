@@ -40,17 +40,17 @@
       this->size = 0;
     }
   };
-  struct Function {
+  struct Funct {
     string name;
-    Function() {
+    Funct() {
       this->name = "";
     }
-    Function(string name) {
+    Funct(string name) {
       this->name = name;
     }
   };
   map<string, Symbol> symbol_table;
-  map<string, Function> function_table;
+  map<string, Funct> function_table;
 
   stack<string> temp_stack;
   stack<string> ident_stack;
@@ -80,14 +80,14 @@
   int ival;
   // dec_type* dec; 
   // idents_type* idents;
-  // attribute_type* attr;
   struct attribute_type {
-    string name;
-    string index;
-    string type; 
+    char name[255];
+    char index[255];
+    char type[255]; 
     int val;
     int size_attr;
-  };
+  } attr;
+  // attribute_type attr;
 }
 
 %error-verbose
@@ -117,7 +117,7 @@
 // %type <dec> Declarations Declaration 
 // %type <idents> Idents Vars Ident Var
 
-%type <*attribute_type> Function Statement Statements Term Expressions Expression MultiplicativeExpr RelationExpr RelExpr RelationAndExpr Declarations Declaration Idents Vars Ident Var BoolExpr
+%type <attr> Statement Term Expression MultiplicativeExpr RelationExpr RelExpr RelationAndExpr Declaration Var BoolExpr
 %type <sval> Comparison
 
 %% /* Grammar Rules */
@@ -128,272 +128,274 @@ Functions: /* epsilon */
   | Function Functions;
 
 Function: FUNCTION IDENT {
-  buffer << "FUNCTION " << string($2) << endl;
-} SEMICOLON BEGIN_PARAMS Declarations {
-  while (!param_stack.empty()) {
-    buffer << "= " << param_stack.top() << ", $" << param_counter << endl;
-    param_counter += 1;
-    param_stack.pop(); 
-  }
-} END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statement SEMICOLON Statements END_BODY 
-  {
-    output << "END FUNCTION" << string($2) << endl;
-    // Clear symbol table and param stack
-    symbol_table.clear();
+    buffer << "FUNCTION " << string($2) << endl;
+  } SEMICOLON BEGIN_PARAMS Declarations {
     while (!param_stack.empty()) {
-      param_stack.pop();
+      buffer << "= " << param_stack.top() << ", $" << param_counter << endl;
+      param_counter += 1;
+      param_stack.pop(); 
     }
-    Function f = Function($2);
-
-    if (function_table.find(f.name) == function_table.end()) {
-      function_table.at(f.name) = f;
-    } else {
-      string err = "error: function: " + f.name + " already exists!";
-      yyerror(err);
-    }
-  };
-
-Declarations: /* epsilon */ 
+  } END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statement SEMICOLON Statements END_BODY 
     {
+      output << "END FUNCTION" << string($2) << endl;
+      // Clear symbol table and param stack
+      symbol_table.clear();
       while (!param_stack.empty()) {
-        buffer << "= " << param_stack.top() << ", " << "$" << GetParam() << endl;
         param_stack.pop();
       }
-    }
-    | Declaration SEMICOLON Declarations;
+      Funct f = Funct($2);
 
-Declaration: IDENT COLON INTEGER 
-    {
-      ident_stack.push($1);
-      param_stack.push($1);
-
-      while (!ident_stack.empty()) {
-        string s = ident_stack.top();
-        ident_stack.pop();
-        Symbol symbol(s, "INTEGER", 0, 0);
-
-        // Add to symbol table if it doesn't exist
-        if (symbol_table.find(symbol->name) == symbol_table.end()) {
-          symbol_table.at(symbol->name) = symbol;
-        } else {
-          string err = "Symbol: " + s->name + " already exists.";
-          yyerror(err);
-        }
-
-        buffer << ". " << s << endl;
+      if (function_table.find(f.name) == function_table.end()) {
+        function_table[f.name] = f;
+      } else {
+        string err = "error: function: " + f.name + " already exists!";
+        yyerror(err);
       }
-    }
-    | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
-    { 
-      ident_stack.push($1);
-      param_stack.push($1);
+    };
+
+Declarations: /* epsilon */
+  | Declaration SEMICOLON Declarations
+  ;
+Declaration: IDENT CommaIdent COLON INTEGER 
+  {
+    ident_stack.push($1);
+    param_stack.push($1);
+
+    while (!ident_stack.empty()) {
+      string ident = ident_stack.top();
       ident_stack.pop();
-      Symbol symbol(s, "ARRAY", 0, $5);
+      Symbol symbol(ident, "INTEGER", 0, 0);
 
-      while (!ident_stack.empty()) {
-        if (symbol_table.find(symbol->name) == symbol_table.end()) {
-            symbol_table.at(symbol->name) = symbol;
-        } else {
-          string err = "Symbol: " + s->name + " already exists.";
-          yyerror(err);
-        }
-
-        buffer << ". " << s << endl;
+      // Add to symbol table if it doesn't exist
+      if (symbol_table.find(symbol.name) == symbol_table.end()) {
+        symbol_table[symbol.name] = symbol;
+      } else {
+        string err = "Symbol: " + ident + " already exists.";
+        yyerror(err);
       }
-    }
-    | Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
-    {
-      // ident_stack.push($1);
-      // param_stack.push($1);
-      // ident_stack.pop();
-      // Symbol symbol(0, $5, s, "ARRAY");
 
-      // while (!ident_stack.empty()) {
-      //   if (symbol_table.find(symbol->name) == symbol_table.end()) {
-      //       symbol_table.at(symbol->name) = symbol;
-      //   } else {
-      //     string err = "Symbol: " + s->name + " already exists.";
-      //     yyerror(err);
-      //   }
-
-      //   buffer << ". " << s << endl;
-      // }
+      buffer << ". " << ident << endl;
     }
+  }
+  | IDENT CommaIdent COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
+  { 
+    ident_stack.push($1);
+    param_stack.push($1);
+
+    while (!ident_stack.empty()) {
+      string ident = ident_stack.top();
+      ident_stack.pop();
+      Symbol symbol(ident, "ARRAY", 0, $6);
+      if (symbol_table.find(symbol.name) == symbol_table.end()) {
+          symbol_table[symbol.name] = symbol;
+      } else {
+        string err = "Symbol: " + ident + " already exists.";
+        yyerror(err);
+      }
+
+      buffer << ".[] " << ident << $6 << endl;
+    }
+  }
+  | IDENT CommaIdent COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
+  {}
   ;
 
-Idents: Ident
-    | Ident COMMA Idents
-    ;
-Ident: IDENT {
-  ident_stack.push($1);
-  param_stack.push($1);
-};
+CommaIdent: /* epsilon */
+  | COMMA IDENT CommaIdent {
+    ident_stack.push($2);
+    param_stack.push($2);
+  }
+  ;
 
 
 Vars: Var
-  | Var COMMA Vars
+  | COMMA Var Vars {
+    cout << "Vars START" << endl;
+    variable_stack.push($2.name);
+    cout << "Vars END" << endl;
+  }
   ;
 Var: IDENT
   {
-    if (symbol_table.find($1) == symbol_table.end()) {
-      string err = "Symbol: " + $1 + " not declared: ";
+    cout << "VAR1 START" << endl;
+    string val($1);
+    if (symbol_table.find(val) == symbol_table.end()) {
+      string err = "Symbol: " + string($1) + " not declared";
       yyerror(err);
     }
-    if (symbol_table.at($1).type == "ARRAY") {
+    cout << "DEBUG1" << endl;
+    if (symbol_table[$1].type == "ARRAY") {
+      cout << "DEBUG2" << endl;
       yyerror("Symbol is type ARRAY");
     } else {
-      strcpy($$.name, $1);
-      $$->type = "INTEGER";
+      cout << "DEBUG3" << endl;
+      strcpy($$.name, val.c_str());
+      cout << "DEBUG4" << endl;
+      // $$.name = string($1).c_str();
+      strcpy($$.type, "INTEGER");
+      cout << "DEBUG5" << endl;
     }
+    cout << "VAR1 END" << endl;
   }
   | IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET 
   {
     // TODO Add ident to map/list/set
-    // printf("Var -> Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");
-    if (symbol_table.find($1) == symbol_table.end()) {
-      string err = "Symbol: " + $1 + " not declared: ";
+    // printf("Var . Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");
+    cout << "VAR2 START" << endl;
+    string val($1);
+    if (symbol_table.find(val) == symbol_table.end()) {
+      string err = "Symbol: " + val + " not declared: ";
       yyerror(err);
     }
-    if (symbol_table.at($1)->type == "INTEGER") {
+    if (symbol_table[val].type == "INTEGER") {
       yyerror("Symbol is type INTEGER");
     } else {
-      if
+      if ($3.type == "ARRAY") {
+        string temp = GetNextTemp();
+        strcpy($$.type, "ARRAY");
+        strcpy($$.index, temp.c_str());
+        strcpy($$.name, val.c_str());
+
+        buffer << ". " << temp << endl;
+        buffer << "=[] " << temp << ", " << $3.name << ", " << $3.index << endl;
+      } else {
+        strcpy($$.name, val.c_str());
+        strcpy($$.type, "ARRAY");
+        strcpy($$.index, $3.name);
+      }
     }
+    cout << "VAR2 END" << endl;
   }
   | IDENT L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET 
   {
     // TODO Add ident to map/list/set
-    printf("Var -> Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");
+    // printf("Var . Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");
+    cout << "VAR3 START" << endl;
   }
   ;
 
 Term: Var 
   {
-    $$->val = $1->val;
-    $$->type = $1->type;
-    if ($1->type == "ARRAY") {
+    cout << "TERM START" << endl;
+    $$.val = $1.val;
+    strcpy($$.type, $1.type);
+    if ($1.type == "ARRAY") {
       string temp = GetNextTemp();
-      strcpy($$.name, temp);
-      string name = $$->name;
+      strcpy($$.name, temp.c_str());
+      string name = $$.name;
       strcpy($$.index, $$.name);
-      string name1 = $$->name;
-      string name2 = $1->name;
-      string index = $1->index;
+      string name1 = $$.name;
+      string name2 = $1.name;
+      string index = $1.index;
       buffer << ". " << name1 << endl;
       buffer << "= " << name1 << ", " << name2 << ", " << index << endl;
     } else {
       string temp = GetNextTemp();
-      strcpy($$.name, temp);
-      string name = $$->name;
+      strcpy($$.name, temp.c_str());
+      string name = $$.name;
       strcpy($$.index, $$.name);
-      string name1 = $$->name;
-      string name2 = $1->name;
+      string name1 = $$.name;
+      string name2 = $1.name;
       buffer << ". " << name1 << endl;
       buffer << "= " << name1 << ", " << name2 << endl;
     }
+    cout << "TERM END" << endl;
   }
   | NUMBER 
   {
-    $$->val = $1;
-    $$->type = "INTEGER";
+    cout << "TERM2 START" << endl;
+    $$.val = $1;
+    cout << "DEBUG 1" << endl;
+    strcpy($$.type, "INTEGER");
+    cout << "DEBUG 2" << endl;
     string temp = GetNextTemp();
-    strcpy($$.name, temp);
+    cout << "DEBUG 3" << endl;
+    strcpy($$.name, temp.c_str());
+    cout << "DEBUG 4" << endl;
     strcpy($$.index, $$.name);
-    string name = $$->name;
+    cout << "DEBUG 5" << endl;
+    string name = $$.name;
+    cout << "DEBUG 6" << endl;
     buffer << ". " << name << endl;
-    buffer << "= " << name << ", " << $$->val << endl;
+    buffer << "= " << name << ", " << $$.val << endl;
+    cout << "TERM2 END" << endl;
   }
   | L_PAREN Expression R_PAREN {
-    // printf("Term -> L_PAREN Expression R_PAREN\n");
+    // printf("Term . L_PAREN Expression R_PAREN\n");
     strcpy($$.name, $2.name);
   }
       | SUB Var {
-        // printf("Term -> SUB Var\n");
-        $$->val = ($2->val * -1);
-        $$->type = $2->type;
+        // printf("Term . SUB Var\n");
+        $$.val = ($2.val * -1);
+        strcpy($$.type, $2.type);
         
-        if ($2->type == "ARRAY") {
+        if ($2.type == "ARRAY") {
           string temp1 = GetNextTemp();
           string temp2 = GetNextTemp();
 
-          string s1 = ". " + temp1 + "\n" + "= " + temp1 + ", 0";
-          buffer << s1 << endl;
-          string s2 = ". " + temp2 + "\n" + ". " << temp2;
-          buffer << s2 << endl;
-          string s3 = "=[] " + temp2 + ", " + $2->name + ", " + $2->index;
-          buffer << s3 << endl;
+          buffer << ". " << temp1 << "\n" << "= " << temp1 << ", 0" << endl;
+          buffer << ". " << temp2 << "\n" << ". " << temp2 << endl;
+          buffer << "=[] " << temp2 << ", " << $2.name << ", " << $2.index << endl;
 
           string temp3 = GetNextTemp();
-          strcpy($$.name, temp3);
+          strcpy($$.name, temp3.c_str());
 
-          string s4 = ". " + $$->name;
-          buffer << s4 << endl;
-          string s5 = "- " + $$->name + ", " + temp1 + ", " + temp2;
-          buffer << s5 << endl;
+          buffer << ". " << $$.name << endl;
+          buffer << "- " << $$.name << ", " << temp1 << ", " << temp2 << endl;
         } else {
           string temp1 = GetNextTemp();
           string temp2 = GetNextTemp();
 
-          string s1 = ". " + temp1 + "\n" + "= " + temp1 + ", 0";
-          buffer << s1 << endl;
-          string s2 = ". " + temp2;
-          buffer << s2 << endl;
-          string s3 = "= " + temp2 + ", " + $2->name;
-          buffer << s3 << endl;
+          buffer << ". " << temp1 << "\n" << "= " << temp1 << ", 0" << endl;
+          buffer << ". " << temp2 << endl;
+          buffer << "= " << temp2 << ", " << $2.name << endl;
 
           string temp3 = GetNextTemp();
-          strcpy($$.name, temp3);
+          strcpy($$.name, temp3.c_str());
 
-          string s4 = ". " + $$->name;
-          buffer << s4 << endl;
-          string s5 = "- " + $$->name + ", " + temp1 + ", " + temp2;
-          buffer << s5 << endl;
+          buffer << ". " << $$.name << endl;
+          buffer << "- " << $$.name << ", " << temp1 << ", " << temp2 << endl;
         }
       }
       | SUB NUMBER {
-        // printf("Term -> SUB NUMBER\n");
-        $$->val = ($2 * -1);
-        $$-type = "INTEGER";
+        // printf("Term . SUB NUMBER\n");
+        $$.val = ($2 * -1);
+        strcpy($$.type, "INTEGER");
 
         string temp1 = GetNextTemp();
         string temp2 = GetNextTemp();
 
-        string s1 = ". " + temp1 + "\n" + "= " + temp1 + ", 0";
-        buffer << s1 << endl;
-        string s2 = ". " + temp2;
-        buffer << s2 << endl;
-        string s3 = "= " + temp2 + ", " + $2;
-        buffer << s3 << endl;
+        buffer << ". " << temp1 << "\n" << "= " << temp1 << ", 0" << endl;
+        buffer << ". " << temp2 << endl;
+        string val = to_string($$.val);
+        buffer << "= " << temp2 << ", " << val << endl;
 
         string temp3 = GetNextTemp();
-        strcpy($$.name, temp3);
+        strcpy($$.name, temp3.c_str());
 
-        string s4 = ". " + $$->name;
-        buffer << s4 << endl;
-        string s5 = "- " + $$->name + ", " + temp1 + ", " + temp2;
-        buffer << s5 << endl;
+        buffer << ". " << $$.name << endl;
+        buffer << "- " << $$.name << ", " << temp1 << ", " << temp2 << endl;
       }
       | SUB L_PAREN Expression R_PAREN {
-        // printf("Term -> SUB L_PAREN Expression R_PAREN\n");
+        // printf("Term . SUB L_PAREN Expression R_PAREN\n");
         string temp1 = GetNextTemp();
         buffer << ". " << temp1 <<endl;
         buffer << "= " << ", " << temp1 << ", 0" << endl;
 
         string temp2 = GetNextTemp();
-        strcpy($$.name, temp2);
+        strcpy($$.name, temp2.c_str());
 
-        string s4 = ". " + $$->name;
-        buffer << s4 << endl;
-        string s5 = "- " + $$->name + ", " + temp1 + ", " + $3->name;
-        buffer << s5 << endl;
+        buffer << ". " << $$.name << endl;
+        buffer << "- " << $$.name << ", " << temp1 << ", " << $3.name << endl;
       }
-  | IDENT L_PAREN Expressions R_PAREN {
-    // printf("Term -> IDENT L_PAREN Expressions R_PAREN\n");
-    if(function_table.find($1) == function_table.end()) {
-      string err = "Function: " + $1 + " not declared: ";
+  | IDENT L_PAREN Expression R_PAREN {
+    // printf("Term . IDENT L_PAREN Expressions R_PAREN\n");
+    string val($1);
+    if(function_table.find(val) == function_table.end()) {
+      string err = "Function: " + val + " not declared: ";
       yyerror(err);
     }
-    expression_stack.push($3->name);
+    expression_stack.push($3.name);
 
     while (!expression_stack.empty()) {
       buffer << "Param " << expression_stack.top() << endl;
@@ -405,48 +407,52 @@ Term: Var
     buffer << "Call " << $1 << ", " << temp << endl;
   }
   | IDENT L_PAREN R_PAREN {
-    if(function_table.find($1) == function_table.end()) {
-      string err = "Function: " + $1 + " not declared: ";
+    string val($1);
+    if(function_table.find(val) == function_table.end()) {
+      string s = val;
+      string err = "Function: " + val + " not declared: ";
       yyerror(err);
     }
     
     string temp = GetNextTemp();
     buffer << ". " << temp << endl;
     buffer << "Call " << $1 << ", " << temp << endl;
-    strcpy($$.name, temp);
+    strcpy($$.name, temp.c_str());
   }
   ;
 
-Statements: /* epsilon */ 
+Statements: /* epsilon */ { cout << "STATEMENTS" << endl;}
   | Statement SEMICOLON Statements;
 Statement: 
     Var ASSIGN Expression 
     { 
-      if ($1->type == "INTEGER") {
-        string s = "= " + $1->name + ", " + $3->name;
-        buffer << s << endl;
+      cout << "BTest1" << endl;
+      if ($1.type == "INTEGER") {
+        buffer << "= " << $1.name << ", " << $3.name << endl;
       } else {
-        string s = "[]= " << $1->name + ", " + $1->index + ", " + $3->name;
-        buffer << s << endl;
+        buffer << "[]= " << $1.name << ", " << $1.index << ", " << $3.name << endl;
       }
       ReadBuffer();
     }
     | IF BoolExpr THEN {
+      cout << "BTest2" << endl;
       string start = GetLabel();
       string endif = GetLabel();
       label_stack.push(endif); 
-      string s = "?:= " + start + ", " + $2->name;
+      string s = "?:= " + start + ", " + $2.name;
       buffer << s << endl;
       buffer << ":= " << endif << endl;
       buffer << ": " << start << endl;
     } 
-    Statements Else ENDIF {
+    Statement SEMICOLON Statements Else ENDIF {
+      cout << "BTest3" << endl;
       string s = ": " + label_stack.top();
       label_stack.pop();
       buffer << s << endl;
       ReadBuffer();
     }
     | WHILE BoolExpr BEGINLOOP {
+      cout << "BTest3" << endl;
       string condition = GetLabel();
       string end = GetLabel();
       string start = GetLabel();
@@ -457,12 +463,13 @@ Statement:
       output << ": " << start << endl;
       ReadBuffer();
 
-      string s = "?:= " + condition + ", " + $2->name;
+      string s = "?:= " + condition + ", " + $2.name;
       buffer << s << endl;
       buffer << ":= " << end << endl;
       buffer << ": " << condition << endl;
 
-    } Statements ENDLOOP {
+    } Statement SEMICOLON Statements ENDLOOP {
+      cout << "BTest4" << endl;
       ReadBuffer();
 
       string end = label_stack.top();
@@ -476,47 +483,48 @@ Statement:
       ReadBuffer();
     }
     | DO BEGINLOOP {
+      cout << "BTest5" << endl;
       string start = GetLabel();
       label_stack.push(start);
 
       output << ": " << start << endl;
       ReadBuffer();
-    } Statements ENDLOOP WHILE BoolExpr {
-      // printf("Statement -> DO BEGINLOOP Statements ENDLOOP WHILE BoolExpr\n");
+    } Statement SEMICOLON Statements ENDLOOP WHILE BoolExpr {
+      cout << "BTest 6" << endl;
       string start = label_stack.top();
       label_stack.pop();
-      string s = "?:= " + start + ", " + $4->name;
+      string s = "?:= " + start + ", " + $9.name;
       buffer << s << endl;
       ReadBuffer();
     }
     | FOR Var ASSIGN NUMBER SEMICOLON BoolExpr SEMICOLON Var ASSIGN Expression BEGINLOOP Statements ENDLOOP {
-      // printf("FOR Var ASSIGN NUMBER SEMICOLON BoolExpr SEMICOLON Var ASSIGN Expression BEGINLOOP Statements ENDLOOP\n");
+      cout << "BTest 7" << endl;
 
     }
-    | READ Vars {
-      // printf("Statement -> Read Vars\n");
-      variable_stack.push($2->name);
+    | READ Var Vars {
+      cout << "BTest 8" << endl;
+      variable_stack.push($2.name);
       while (!variable_stack.empty()) {
-        if ($2->type == "INTEGER") {
+        if ($2.type == "INTEGER") {
           buffer << ".< " << variable_stack.top() << endl;
           variable_stack.pop();
         } else {
-          string s = ".[]< " + variable_stack.top() + ", " + $2->index;
+          string s = ".[]< " + variable_stack.top() + ", " + $2.index;
           variable_stack.pop();
           buffer << s << endl;
         }
       }
       ReadBuffer();
     }
-    | WRITE Vars {
-      // printf("Statement -> WRITE Vars\n");
-      variable_stack.push($2->name);
+    | WRITE Var Vars {
+      cout << "BTest 9" << endl;
+      variable_stack.push($2.name);
       while (!variable_stack.empty()) {
-        if ($2->type == "INTEGER") {
+        if ($2.type == "INTEGER") {
           buffer << ".> " << variable_stack.top() << endl;
           variable_stack.pop();
         } else {
-          string s = ".[]> " + variable_stack.top() + ", " + $2->index;
+          string s = ".[]> " + variable_stack.top() + ", " + $2.index;
           variable_stack.pop();
           buffer << s << endl;
         }
@@ -524,7 +532,7 @@ Statement:
       ReadBuffer();
     }
     | CONTINUE {
-      // printf("Statement -> CONTINUE\n");
+      cout << "BTest 10" << endl;
       if (!label_stack.empty()) {
         buffer << ":= " << label_stack.top() << endl;
         label_stack.pop();
@@ -534,113 +542,111 @@ Statement:
       }
     }
     | RETURN Expression {
-      // printf("Statement -> RETURN\n");
-      $$->val = $2->val;
+      cout << "BTest 11" << endl;
+      $$.val = $2.val;
       strcpy($$.name, $2.name);
-      string s = "RETURN: " + $2->name;
-      buffer << s << endl;
+      buffer << "RETURN: " << $2.name << endl;
       ReadBuffer();
     }
     ;
 
 Else: /* epsilon */
   | ELSE {
+    cout << "ELSE START" << endl;
     string else_label = GetLabel();
     buffer << ":= " << else_label << endl;
-    buffer << ": " label_stack.top() << endl;
+    buffer << ": " << label_stack.top() << endl;
     label_stack.pop();
     label_stack.push(else_label);
+    cout << "ELSE END" << endl;
   } Statements
   ;
 
-Expressions: /* epsilon */ 
-    | Expression 
-    | Expressions COMMA Expression
-    ;
+
 Expression: MultiplicativeExpr 
     {
       strcpy($$.name, $1.name);
-      $$->type = $1->type;
+      strcpy($$.type, $1.type);
     }
     | Expression ADD MultiplicativeExpr 
     {
       string temp = GetNextTemp();
-      strcpy($$.name, temp);
+      strcpy($$.name, temp.c_str());
       buffer << ". " << temp << endl;
-      buffer << "+ " << temp << $1->name << ", " << $3->name << endl;
+      buffer << "+ " << temp << $1.name << ", " << $3.name << endl;
     }
     | Expression SUB MultiplicativeExpr 
     {
       string temp = GetNextTemp();
-        strcpy($$.name, temp);
+        strcpy($$.name, temp.c_str());
         buffer << ". " << temp << endl;
-        buffer << "- " << temp << $1->name << ", " << $3->name << endl;
+        buffer << "- " << temp << $1.name << ", " << $3.name << endl;
     };
 
 MultiplicativeExpr: Term 
   {
     strcpy($$.name, $1.name);
-    $$->type = $1->type;
+    strcpy($$.type, $1.type);
   }
   | MultiplicativeExpr MULT Term {
     string temp = GetNextTemp();
     buffer << ". " << temp << endl;
-    string s1 = $1->name;
-    string s3 = $3->name;
+    string s1 = $1.name;
+    string s3 = $3.name;
     buffer << "* " << temp << ", " << s1 << ", " << s3 << endl;
-    strcpy($$.name, temp);
+    strcpy($$.name, temp.c_str());
   }
   | MultiplicativeExpr DIV Term {
     string temp = GetNextTemp();
     buffer << ". " << temp << endl;
-    string s1 = $1->name;
-    string s3 = $3->name;
+    string s1 = $1.name;
+    string s3 = $3.name;
     buffer << "/ " << temp << ", " << s1 << ", " << s3 << endl;
-    strcpy($$.name, temp);
+    strcpy($$.name, temp.c_str());
   }
   | MultiplicativeExpr MOD Term {
     string temp = GetNextTemp();
     buffer << ". " << temp << endl;
-    string s1 = $1->name;
-    string s3 = $3->name;
+    string s1 = $1.name;
+    string s3 = $3.name;
     buffer << "% " << temp << ", " << s1 << ", " << s3 << endl;
-    strcpy($$.name, temp);
+    strcpy($$.name, temp.c_str());
   };
 
-Comparison: EQ { $$ = "=="; }
-    | NEQ { $$ = "!="; }
-    | LT { $$ = "<"; }
-    | GT { $$ = ">"; }
-    | LTE { $$ = "<="; }
-    | GTE { $$ = ">="; }
+Comparison: EQ { $$ = const_cast<char*>("=="); }
+    | NEQ { $$ = const_cast<char*>("!="); }
+    | LT { $$ = const_cast<char*>("<"); }
+    | GT { $$ = const_cast<char*>(">"); }
+    | LTE { $$ = const_cast<char*>("<="); }
+    | GTE { $$ = const_cast<char*>(">="); }
     ;
 
 BoolExpr: RelationAndExpr {
-    printf("BoolExpr -> RelationAndExpr\n");
-    variable_stack.push($1->name);
+    printf("BoolExpr . RelationAndExpr\n");
+    variable_stack.push($1.name);
   } 
   | RelationAndExpr OR BoolExpr {
-    printf("BoolExpr -> RelationAndExpr OR RelationAndExpr\n");
+    printf("BoolExpr . RelationAndExpr OR RelationAndExpr\n");
     string temp = GetNextTemp();
-    strcpy($$.name, temp);
+    strcpy($$.name, temp.c_str());
     buffer << ". " << temp << endl;
-    string s1 = $1->name;
-    string s3 = $3->name;
+    string s1 = $1.name;
+    string s3 = $3.name;
     buffer << "|| " << temp << ", " << s1 << ", " << s3 << endl;
   }
   ;
 
 RelationAndExpr: RelationExpr {
-    printf("RelationAndExpr -> RelationExpr\n");
+    printf("RelationAndExpr . RelationExpr\n");
     strcpy($$.name, $1.name);
   }
   | RelationExpr AND RelationAndExpr {
-    printf("RelationAndExpr -> RelationExpr AND RelationAndExpr\n");
+    printf("RelationAndExpr . RelationExpr AND RelationAndExpr\n");
     string temp = GetNextTemp();
-    strcpy($$.name, temp);
+    strcpy($$.name, temp.c_str());
     buffer << ". " << temp << endl;
-    string s1 = $1->name;
-    string s3 = $3->name;
+    string s1 = $1.name;
+    string s3 = $3.name;
     buffer << "&& " << temp << ", " << s1 << ", " << s3 << endl;
   }
   ;
@@ -650,35 +656,35 @@ RelationExpr: RelExpr {
   }
   | NOT RelExpr {
     string temp = GetNextTemp();
-    strcpy($$.name, temp);
-    buffer << "! " << temp << $2->name << endl;
+    strcpy($$.name, temp.c_str());
+    buffer << "! " << temp << $2.name << endl;
   }
 
 RelExpr: Expression Comparison Expression {
-    // printf("RelationExpr -> Expression Comp Expression\n");
+    // printf("RelationExpr . Expression Comp Expression\n");
     string temp = GetNextTemp();
-    strcpy($$.name, temp);
+    strcpy($$.name, temp.c_str());
     buffer << ". " << temp << endl;
-    string s1 = $1->name;
-    string s3 = $3->name;
+    string s1 = $1.name;
+    string s3 = $3.name;
     buffer << $2 << " " << temp << ", " << s1 << ", " << s3 << endl; 
   }
     | TRUE {
-      // printf("RelationExpr -> TRUE\n");
+      // printf("RelationExpr . TRUE\n");
       string temp = GetNextTemp();
-      strcpy($$.name, temp);
+      strcpy($$.name, temp.c_str());
       buffer << ". " << temp << endl;
       buffer << "= " << temp << ", True" << endl; 
     }
     | FALSE {
-      // printf("RelationExpr -> FALSE\n");
+      // printf("RelationExpr . FALSE\n");
       string temp = GetNextTemp();
-      strcpy($$.name, temp);
+      strcpy($$.name, temp.c_str());
       buffer << ". " << temp << endl;
       buffer << "= " << temp << ", False" << endl; 
     }
     | L_PAREN BoolExpr R_PAREN {
-      // printf("RelationExpr -> L_PAREN BoolExpr R_PAREN\n");
+      // printf("RelationExpr . L_PAREN BoolExpr R_PAREN\n");
       strcpy($$.name, $2.name);
     }
     ;
@@ -694,6 +700,7 @@ int main (int argc, char* argv[]) {
    }//end if
    yyparse(); // Calls yylex() for tokens.
    // TODO output the mil code to file
+   cout << output.str() << endl;
    return 0;
 }
 
