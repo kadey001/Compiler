@@ -94,14 +94,14 @@
 %debug
 %start Program
 
-%token	FUNCTION BEGIN_PARAMS END_PARAMS BEGIN_LOCALS END_LOCALS BEGIN_BODY
+%token FUNCTION BEGIN_PARAMS END_PARAMS BEGIN_LOCALS END_LOCALS BEGIN_BODY
 %token INTEGER ARRAY OF IF THEN ENDIF ELSE WHILE FOR DO BEGINLOOP ENDLOOP END_BODY
-%token CONTINUE READ WRITE TRUE FALSE 
+%token CONTINUE READ WRITE TRUE FALSE RETURN
 
 %token MULT DIV MOD ADD SUB 
 %token LT LTE GT GTE EQ NEQ
 
-%token SEMICOLON COLON COMMA L_PAREN R_PAREN L_SQUARE_BRACKET R_SQUARE_BRACKET RETURN
+%token SEMICOLON COLON COMMA L_PAREN R_PAREN L_SQUARE_BRACKET R_SQUARE_BRACKET
 
 %token <ival> NUMBER
 %token <sval> IDENT
@@ -128,28 +128,28 @@ Functions: /* epsilon */
   | Function Functions;
 
 Function: FUNCTION IDENT {
-    buffer << "FUNCTION: " << string($2) << endl;
+    buffer << "func: " << string($2) << endl;
+    Funct f = Funct($2);
+    // Add function to table and ensure it hasn't already been declared.
+    if (function_table.find($2) == function_table.end()) {
+      function_table[f.name] = f;
+    } else {
+      string err = "error: function: " + f.name + " already exists!";
+      yyerror(err);
+    }
   } SEMICOLON BEGIN_PARAMS Declarations {
     while (!param_stack.empty()) {
       buffer << "= " << param_stack.top() << ", $" << param_counter << endl;
       param_counter += 1;
       param_stack.pop(); 
     }
-  } END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statement SEMICOLON Statements END_BODY 
+  } END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY 
     {
-      output << "END FUNCTION: " << string($2) << endl;
+      output << "endfunc" << endl;
       // Clear symbol table and param stack
       symbol_table.clear();
       while (!param_stack.empty()) {
         param_stack.pop();
-      }
-      Funct f = Funct($2);
-
-      if (function_table.find(f.name) == function_table.end()) {
-        function_table[f.name] = f;
-      } else {
-        string err = "error: function: " + f.name + " already exists!";
-        yyerror(err);
       }
     };
 
@@ -208,7 +208,8 @@ CommaIdent: /* epsilon */
   ;
 
 
-Vars: Var
+Vars: 
+  | Var
   | COMMA Var Vars {
     variable_stack.push($2.name);
   }
@@ -233,7 +234,7 @@ Var: IDENT
     // printf("Var . Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");
     string val($1);
     if (symbol_table.find(val) == symbol_table.end()) {
-      string err = "Symbol: " + val + " not declared: ";
+      string err = "Symbol: " + val + " not declared";
       yyerror(err);
     }
     if (symbol_table[val].type == "INTEGER") {
@@ -367,33 +368,30 @@ Term: Var
       }
   | IDENT L_PAREN Expression R_PAREN {
     // printf("Term . IDENT L_PAREN Expressions R_PAREN\n");
-    string val($1);
-    if(function_table.find(val) == function_table.end()) {
-      string err = "Function: " + val + " not declared: ";
+    if(function_table.find($1) == function_table.end()) {
+      string err = "Function: " + string($1) + " not declared";
       yyerror(err);
     }
     expression_stack.push($3.name);
 
     while (!expression_stack.empty()) {
-      buffer << "Param " << expression_stack.top() << endl;
+      buffer << "param " << expression_stack.top() << endl;
       expression_stack.pop();
     }
 
     string temp = GetNextTemp();
     buffer << ". " << temp << endl;
-    buffer << "Call " << $1 << ", " << temp << endl;
+    buffer << "call " << $1 << ", " << temp << endl;
   }
   | IDENT L_PAREN R_PAREN {
-    string val($1);
-    if(function_table.find(val) == function_table.end()) {
-      string s = val;
-      string err = "Function: " + val + " not declared: ";
+    if(function_table.find($1) == function_table.end()) {
+      string err = "Function: " + string($1) + " not declared";
       yyerror(err);
     }
     
     string temp = GetNextTemp();
     buffer << ". " << temp << endl;
-    buffer << "Call " << $1 << ", " << temp << endl;
+    buffer << "call " << $1 << ", " << temp << endl;
     strcpy($$.name, temp.c_str());
   }
   ;
@@ -488,7 +486,7 @@ Statement:
       variable_stack.push($2.name);
       while (!variable_stack.empty()) {
         if ($2.type == "INTEGER") {
-          buffer << ".> " << variable_stack.top() << endl;
+          buffer << ". > " << variable_stack.top() << endl;
           variable_stack.pop();
         } else {
           string s = ".[]> " + variable_stack.top() + ", " + $2.index;
@@ -510,7 +508,7 @@ Statement:
     | RETURN Expression {
       $$.val = $2.val;
       strcpy($$.name, $2.name);
-      buffer << "RETURN: " << $2.name << endl;
+      buffer << "ret " << $2.name << endl;
       ReadBuffer();
     }
     ;
@@ -536,14 +534,14 @@ Expression: MultiplicativeExpr
       string temp = GetNextTemp();
       strcpy($$.name, temp.c_str());
       buffer << ". " << temp << endl;
-      buffer << "+ " << temp << $1.name << ", " << $3.name << endl;
+      buffer << "+ " << temp << ", " << $1.name << ", " << $3.name << endl;
     }
     | Expression SUB MultiplicativeExpr 
     {
       string temp = GetNextTemp();
         strcpy($$.name, temp.c_str());
         buffer << ". " << temp << endl;
-        buffer << "- " << temp << $1.name << ", " << $3.name << endl;
+        buffer << "- " << temp << ", " << $1.name << ", " << $3.name << endl;
     };
 
 MultiplicativeExpr: Term 
