@@ -145,7 +145,7 @@ Function: FUNCTION IDENT {
     }
   } END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY 
     {
-      output << "endfunc" << endl;
+      output << "endfunc" << endl << endl;
       // Clear symbol table and param stack
       symbol_table.clear();
       while (!param_stack.empty()) {
@@ -156,7 +156,7 @@ Function: FUNCTION IDENT {
 Declarations: /* epsilon */
   | Declaration SEMICOLON Declarations
   ;
-Declaration: IDENT CommaIdent COLON INTEGER 
+Declaration: IDENT Idents COLON INTEGER 
   {
     ident_stack.push($1);
     param_stack.push($1);
@@ -177,7 +177,7 @@ Declaration: IDENT CommaIdent COLON INTEGER
       buffer << ". " << ident << endl;
     }
   }
-  | IDENT CommaIdent COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
+  | IDENT Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
   { 
     ident_stack.push($1);
     param_stack.push($1);
@@ -196,12 +196,12 @@ Declaration: IDENT CommaIdent COLON INTEGER
       buffer << ".[] " << ident << $6 << endl;
     }
   }
-  | IDENT CommaIdent COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
+  | IDENT Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
   {}
   ;
 
-CommaIdent: /* epsilon */
-  | COMMA IDENT CommaIdent {
+Idents: /* epsilon */
+  | COMMA IDENT Idents {
     ident_stack.push($2);
     param_stack.push($2);
   }
@@ -240,7 +240,7 @@ Var: IDENT
     if (symbol_table[val].type == "INTEGER") {
       yyerror("Symbol is type INTEGER");
     } else {
-      if ($3.type == "ARRAY") {
+      if (strcmp($3.type, "ARRAY") == 0) {
         string temp = GetNextTemp();
         strcpy($$.type, "ARRAY");
         strcpy($$.index, temp.c_str());
@@ -266,20 +266,17 @@ Term: Var
   {
     $$.val = $1.val;
     strcpy($$.type, $1.type);
-    if ($1.type == "ARRAY") {
+    if (strcmp($1.type, "ARRAY") == 0) {
       string temp = GetNextTemp();
       strcpy($$.name, temp.c_str());
-      string name = $$.name;
-      strcpy($$.index, $$.name);
       string name1 = $$.name;
       string name2 = $1.name;
       string index = $1.index;
       buffer << ". " << name1 << endl;
-      buffer << "= " << name1 << ", " << name2 << ", " << index << endl;
+      buffer << "=[] " << name1 << ", " << name2 << ", " << index << endl;
     } else {
       string temp = GetNextTemp();
       strcpy($$.name, temp.c_str());
-      string name = $$.name;
       strcpy($$.index, $$.name);
       string name1 = $$.name;
       string name2 = $1.name;
@@ -307,7 +304,7 @@ Term: Var
         $$.val = ($2.val * -1);
         strcpy($$.type, $2.type);
         
-        if ($2.type == "ARRAY") {
+        if (strcmp($2.type, "ARRAY") == 0) {
           string temp1 = GetNextTemp();
           string temp2 = GetNextTemp();
 
@@ -401,7 +398,7 @@ Statements: /* epsilon */
 Statement: 
     Var ASSIGN Expression 
     { 
-      if ($1.type == "INTEGER") {
+      if (strcmp($1.type, "INTEGER") == 0) {
         buffer << "= " << $1.name << ", " << $3.name << endl;
       } else {
         buffer << "[]= " << $1.name << ", " << $1.index << ", " << $3.name << endl;
@@ -471,10 +468,12 @@ Statement:
     | READ Var Vars {
       variable_stack.push($2.name);
       while (!variable_stack.empty()) {
-        if ($2.type == "INTEGER") {
+        cout << "TYPE: " << $2.type << endl;
+        if (strcmp($2.type, "INTEGER") == 0) {
           buffer << ".< " << variable_stack.top() << endl;
           variable_stack.pop();
         } else {
+          cout << "NOT INTEGER" << endl;
           string s = ".[]< " + variable_stack.top() + ", " + $2.index;
           variable_stack.pop();
           buffer << s << endl;
@@ -485,7 +484,7 @@ Statement:
     | WRITE Var Vars {
       variable_stack.push($2.name);
       while (!variable_stack.empty()) {
-        if ($2.type == "INTEGER") {
+        if (strcmp($2.type, "INTEGER") == 0) {
           buffer << ". > " << variable_stack.top() << endl;
           variable_stack.pop();
         } else {
