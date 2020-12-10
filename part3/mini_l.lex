@@ -71,7 +71,7 @@ ending_iden_char = {letter}|{digit}
 
 {letter}{char}*{underscore} {printf("Error at line %d, column %d: identifier \"%s\" cannot end with an underscore\n", currLine, currPos, yytext); exit(0);}
 {letter}{char}*   {currPos+=yyleng; yylval.sval = strdup(yytext); return IDENT;}
-{digit}+  {currPos += yyleng; yylval.sval = strdup(yytext); return NUMBER;}
+{digit}+  {currPos += yyleng; yylval.ival = atoi(yytext); return NUMBER;}
 
 {space}+ { currPos+=yyleng;}
 {newline} { currLine++; currPos = 1;}
