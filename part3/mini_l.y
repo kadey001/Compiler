@@ -1,5 +1,4 @@
 %{
-  #define YY_NO_UNPUT
   #include <iostream>
   #include <sstream>
   #include <string>
@@ -128,7 +127,7 @@ Functions: /* epsilon */
   | Function Functions;
 
 Function: FUNCTION IDENT {
-    buffer << "func: " << string($2) << endl;
+    buffer << "func " << string($2) << endl;
     Funct f = Funct($2);
     // Add function to table and ensure it hasn't already been declared.
     if (function_table.find($2) == function_table.end()) {
@@ -209,7 +208,6 @@ Idents: /* epsilon */
 
 
 Vars: 
-  | Var
   | COMMA Var Vars {
     variable_stack.push($2.name);
   }
@@ -582,7 +580,7 @@ Comparison: EQ { $$ = const_cast<char*>("=="); }
 
 BoolExpr: RelationAndExpr {
     // printf("BoolExpr . RelationAndExpr\n");
-    variable_stack.push($1.name);
+    strcpy($$.name, $1.name);
   } 
   | RelationAndExpr OR BoolExpr {
     // printf("BoolExpr . RelationAndExpr OR RelationAndExpr\n");
