@@ -379,6 +379,7 @@ Term: Var
     string temp = GetNextTemp();
     buffer << ". " << temp << endl;
     buffer << "call " << $1 << ", " << temp << endl;
+    strcpy($$.name, temp.c_str());
   }
   | IDENT L_PAREN R_PAREN {
     if(function_table.find($1) == function_table.end()) {
@@ -468,12 +469,10 @@ Statement:
     | READ Var Vars {
       variable_stack.push($2.name);
       while (!variable_stack.empty()) {
-        cout << "TYPE: " << $2.type << endl;
         if (strcmp($2.type, "INTEGER") == 0) {
           buffer << ".< " << variable_stack.top() << endl;
           variable_stack.pop();
         } else {
-          cout << "NOT INTEGER" << endl;
           string s = ".[]< " + variable_stack.top() + ", " + $2.index;
           variable_stack.pop();
           buffer << s << endl;
@@ -485,7 +484,7 @@ Statement:
       variable_stack.push($2.name);
       while (!variable_stack.empty()) {
         if (strcmp($2.type, "INTEGER") == 0) {
-          buffer << ". > " << variable_stack.top() << endl;
+          buffer << ".> " << variable_stack.top() << endl;
           variable_stack.pop();
         } else {
           string s = ".[]> " + variable_stack.top() + ", " + $2.index;
