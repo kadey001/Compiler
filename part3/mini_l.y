@@ -408,15 +408,14 @@ Statement:
       string start = GetLabel();
       string endif = GetLabel();
       label_stack.push(endif); 
-      string s = "?:= " + start + ", " + $2.name;
-      buffer << s << endl;
+      buffer << "?:=" << start << ", " << $2.name << endl;
       buffer << ":= " << endif << endl;
       buffer << ": " << start << endl;
     } 
     Statement SEMICOLON Statements Else ENDIF {
-      string s = ": " + label_stack.top();
+      string label = label_stack.top();
       label_stack.pop();
-      buffer << s << endl;
+      buffer << ": " << label << endl;
       ReadBuffer();
     }
     | WHILE BoolExpr BEGINLOOP {
@@ -457,8 +456,7 @@ Statement:
     } Statement SEMICOLON Statements ENDLOOP WHILE BoolExpr {
       string start = label_stack.top();
       label_stack.pop();
-      string s = "?:= " + start + ", " + $9.name;
-      buffer << s << endl;
+      buffer << "?:= " << start << ", " << $9.name << endl;
       ReadBuffer();
     }
     | FOR Var ASSIGN NUMBER SEMICOLON BoolExpr SEMICOLON Var ASSIGN Expression BEGINLOOP Statements ENDLOOP {
@@ -495,7 +493,6 @@ Statement:
     | CONTINUE {
       if (!label_stack.empty()) {
         buffer << ":= " << label_stack.top() << endl;
-        label_stack.pop();
         ReadBuffer();
       } else {
         yyerror("Error: Can't use CONTINUE outside of a loop");
