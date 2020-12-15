@@ -192,7 +192,7 @@ Declaration: IDENT Idents COLON INTEGER
         yyerror(err);
       }
 
-      buffer << ".[] " << ident << $6 << endl;
+      buffer << ".[], " << ident << $6 << endl;
     }
   }
   | IDENT Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
