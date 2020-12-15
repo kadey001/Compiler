@@ -192,7 +192,7 @@ Declaration: IDENT Idents COLON INTEGER
         yyerror(err);
       }
 
-      buffer << ".[], " << ident << $6 << endl;
+      buffer << ".[] " << ident << ", " << $6 << endl;
     }
   }
   | IDENT Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
@@ -257,6 +257,33 @@ Var: IDENT
   {
     // TODO Add ident to map/list/set
     // printf("Var . Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");
+
+    string val($1);
+    if (symbol_table.find(val) == symbol_table.end()) {
+      string err = "Symbol: " + val + " not declared";
+      yyerror(err);
+    }
+    if (symbol_table[val].type == "INTEGER") {
+      yyerror("Symbol is type INTEGER");
+    } 
+    else {
+      if (strcmp($3.type, "ARRAY") == 0) {
+        string temp = GetNextTemp();
+        strcpy($$.type, "ARRAY");
+        strcpy($$.index, temp.c_str());
+        strcpy($$.name, val.c_str());
+
+        int ind = ( atoi($3.index) * $3.size_attr) + ( atoi($6.index) - 1);
+
+        buffer << ". " << temp << endl;
+        buffer << "=[] " << temp << ", " << $3.name << ", " << to_string(ind) << endl;
+      } 
+      else {
+        strcpy($$.name, val.c_str());
+        strcpy($$.type, "ARRAY");
+        strcpy($$.index, $3.name);
+      }
+    }
   }
   ;
 
