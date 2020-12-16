@@ -72,11 +72,7 @@
 
 %code requires{
   using namespace std;
-}
 
-%union{
-  char* sval;
-  int ival;
   struct attribute_type {
     char name[255]; 
     char index[255];
@@ -84,6 +80,11 @@
     int val;
     int size_attr;
   };
+}
+
+%union{
+  char* sval;
+  int ival;
   attribute_type attr;
 }
 
