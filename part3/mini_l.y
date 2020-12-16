@@ -19,10 +19,10 @@
   int temp_counter = 0;
   int label_counter = 0;
   int param_counter = 0;
-  bool main_exists = true;
+  bool main_exists = false;
   struct Symbol {
     string name;
-    string type; // Includes "INTEGER", "ARRAY", "FUNCTION"
+    string type; // Includes "INTEGER", "ARRAY"
     int value;
     int size;
 
@@ -77,16 +77,14 @@
 %union{
   char* sval;
   int ival;
-  // dec_type* dec; 
-  // idents_type* idents;
   struct attribute_type {
-    char name[255];
+    char name[255]; 
     char index[255];
     char type[255]; 
     int val;
     int size_attr;
-  } attr;
-  // attribute_type attr;
+  };
+  attribute_type attr;
 }
 
 %error-verbose
@@ -112,16 +110,16 @@
 %left L_SQUARE_BRACKET R_SQUARE_BRACKET
 %left L_PAREN R_PAREN
 
-// %type <sval> Program Function Functions Statement Statements Term Expressions Expression MultiplicativeExpr 
-// %type <dec> Declarations Declaration 
-// %type <idents> Idents Vars Ident Var
-
 %type <attr> Statement Term Expression MultiplicativeExpr RelationExpr RelExpr RelationAndExpr Declaration Var BoolExpr
 %type <sval> Comparison
 
 %% /* Grammar Rules */
 
-Program: Functions;
+Program: Functions {
+  if (!main_exists) {
+    yyerror("Error: main function not defined!");
+  }
+};
 
 Functions: /* epsilon */
   | Function Functions;
@@ -133,7 +131,7 @@ Function: FUNCTION IDENT {
     if (function_table.find($2) == function_table.end()) {
       function_table[f.name] = f;
     } else {
-      string err = "error: function: " + f.name + " already exists!";
+      string err = "Error: function: " + f.name + " already exists!";
       yyerror(err);
     }
   } SEMICOLON BEGIN_PARAMS Declarations {
@@ -145,6 +143,9 @@ Function: FUNCTION IDENT {
   } END_PARAMS BEGIN_LOCALS Declarations END_LOCALS BEGIN_BODY Statements END_BODY 
     {
       output << "endfunc" << endl << endl;
+      if (strcmp($2, "main") == 0) {
+        main_exists = true;
+      }
       // Clear symbol table and param stack
       symbol_table.clear();
       while (!param_stack.empty()) {
@@ -408,7 +409,7 @@ Statement:
       string start = GetLabel();
       string endif = GetLabel();
       label_stack.push(endif); 
-      buffer << "?:=" << start << ", " << $2.name << endl;
+      buffer << "?:= " << start << ", " << $2.name << endl;
       buffer << ":= " << endif << endl;
       buffer << ": " << start << endl;
     } 
@@ -495,7 +496,7 @@ Statement:
         buffer << ":= " << label_stack.top() << endl;
         ReadBuffer();
       } else {
-        yyerror("Error: Can't use CONTINUE outside of a loop");
+        yyerror("Error: Can't use CONTINUE outside of a loop!");
       }
     }
     | RETURN Expression {
