@@ -57,6 +57,7 @@
   stack<string> label_stack;
   stack<string> param_stack;
   stack<string> expression_stack;
+  bool has_error;
 
   void ReadBuffer();
   string GetNextTemp();
@@ -683,22 +684,29 @@ int main (int argc, char* argv[]) {
    }//end if
    yyparse(); // Calls yylex() for tokens.
    // TODO output the mil code to file
-   cout << output.str() << endl;
+   if (!has_error) {
+      cout << output.str() << endl;
+   }
+   
+      
    return 0;
 }
 
 void yyerror(string msg) {
   printf("* Line %d, position %d: %s\n", currLine, currPos, msg.c_str());
+  has_error = true;
 }
 
 void yyerror(const char* msg) {
   printf("* Line %d, position %d: %s\n", currLine, currPos, msg);
+  has_error = true;
 }
 
 void ReadBuffer() {
-  output << buffer.rdbuf();
-  buffer.clear();
-  buffer.str(" ");
+    output << buffer.rdbuf();
+    buffer.clear();
+    buffer.str(" ");
+
 }
 
 string GetNextTemp() {
