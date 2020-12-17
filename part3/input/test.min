@@ -1,0 +1,13 @@
+function main;
+beginparams
+
+endparams
+beginlocals
+	b,c : integer;
+	a : array[10][25] of integer;
+
+endlocals
+beginbody
+	a[4][0] := 693232;
+	write a[4][0];
+endbody

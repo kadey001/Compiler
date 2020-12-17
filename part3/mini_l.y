@@ -199,7 +199,28 @@ Declaration: IDENT Idents COLON INTEGER
     }
   }
   | IDENT Idents COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
-  {}
+  {
+
+    ident_stack.push($1);
+    param_stack.push($1);
+
+    while (!ident_stack.empty()) {
+      string ident = ident_stack.top();
+      ident_stack.pop();
+      Symbol symbol(ident, "ARRAY", 0, $6);
+      if (symbol_table.find(symbol.name) == symbol_table.end()) {
+          symbol_table[symbol.name] = symbol;
+      } else {
+        string err = "Symbol: " + ident + " already exists.";
+        yyerror(err);
+      }
+
+      int x = $6 * $9;
+
+      buffer << ".[] " << ident << ", " << to_string(x) << endl;
+    }
+
+  }
   ;
 
 Idents: /* epsilon */
@@ -233,6 +254,7 @@ Var: IDENT
   {
     // TODO Add ident to map/list/set
     // printf("Var . Ident L_SQUARE_BRACKET Expression R_SQUARE_BRACKET\n");
+
     string val($1);
     if (symbol_table.find(val) == symbol_table.end()) {
       string err = "Symbol: " + val + " not declared";

@@ -69,7 +69,7 @@ ending_iden_char = {letter}|{digit}
 "[" {currPos+=yyleng; return L_SQUARE_BRACKET;}
 "]" {currPos+=yyleng; return R_SQUARE_BRACKET;}
 
-{letter}{char}*{underscore} {printf("Error at line %d, column %d: identifier \"%s\" cannot end with an underscore\n", currLine, currPos, yytext); exit(0);}
+{letter}{char}*{underscore} {printf("Error at line %d, column %d: identifier \"%s\" cannot end with an underscore\n", currLine, currPos, yytext); }
 {letter}{char}*   {currPos+=yyleng; yylval.sval = strdup(yytext); return IDENT;}
 {digit}+  {currPos += yyleng; yylval.ival = atoi(yytext); return NUMBER;}
 
@@ -77,8 +77,8 @@ ending_iden_char = {letter}|{digit}
 {newline} { currLine++; currPos = 1;}
 {comment} {currPos+=yyleng;}
 
-({underscore}|{digit})+{letter}* {printf("Error at line %d, column %d: identifier \"%s\" must begin with a letter\n", currLine, currPos, yytext); exit(0);}
-. {printf("Error at line: %d, column: %d: unrecognized symbol: \"%c\"\n", currLine, currPos, *yytext); exit(0);}
+({underscore}|{digit})+{letter}* {printf("Error at line %d, column %d: identifier \"%s\" must begin with a letter\n", currLine, currPos, yytext); }
+. {printf("Error at line: %d, column: %d: unrecognized symbol: \"%c\"\n", currLine, currPos, *yytext); }
 
 %%
 
